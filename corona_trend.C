@@ -19,6 +19,7 @@ get_data_from_csv(const std::string csv_file,
     {
       tokens.push_back(token);
     }
+
     return tokens;
   };
 
@@ -55,12 +56,12 @@ get_data_from_csv(const std::string csv_file,
       continue; 
     }
 
-    std::string read_date     = tokens[0];
-    std::string read_country  = tokens[1];
-    float read_new_cases      = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
-    float read_new_deaths     = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
-    float read_tot_cases      = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
-    float read_tot_deaths     = tokens.size() > min_tokens ? (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
+    std::string read_date    = tokens[0];
+    std::string read_country = tokens[1];
+    float read_new_cases     = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
+    float read_new_deaths    = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
+    float read_tot_cases     = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
+    float read_tot_deaths    = tokens.size() > min_tokens ? (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
 
     // Fill data vector
     if (read_country == country) 
@@ -78,6 +79,7 @@ get_data_from_csv(const std::string csv_file,
 
   return std::make_tuple(new_cases, new_deaths, tot_cases, tot_deaths);
 }
+
 
 /********************/
 /* Corona virus fit */
@@ -190,7 +192,7 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   test_fun->SetParName(3, "#sigma");
   test_fun->SetParLimits(0,  1e2, 1e7);
   test_fun->SetParLimits(1,  0.0,  1.0);
-  test_fun->SetParLimits(2., 0.1, 100.0);
+  test_fun->SetParLimits(2., 10, 100.0);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 0.25, 10.0, 1.0);
   //test_fun->FixParameter(1, 0.21);
@@ -235,7 +237,7 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
     text->Draw("same");
   }
 
-  // Draw predicted cases
+  // Draw predicted data
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
   {
     float fit_val = fit_fun->Eval(day);
@@ -257,10 +259,10 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   };
 
   int pred_from_day = std::min(fit_to_day, days.back()) + 1;  
-  int pred_to_day = std::max(fit_to_day + days_to_pred, days.back());  
-  for (int day = pred_from_day; day <= pred_to_day; day++)
+  int pred_to_day = pred_from_day + days_to_pred;
+  for (int day = pred_from_day; day < pred_to_day; day++)
   {
-    bool print_text = (days_to_pred < 10) ? true : (day == pred_to_day) ? true : false; 
+    bool print_text = days_to_pred < 5 ? true : (day == pred_to_day) ? true : false; 
     draw_fit_point(day, print_text); 
   }
 
