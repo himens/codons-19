@@ -1,8 +1,12 @@
 /**********************/
 /* Read data from csv */
 /**********************/
-std::vector<float> read_data_from_csv(const std::string csv_file, 
-                                      const std::string country)
+std::tuple<std::vector<float>, 
+           std::vector<float>, 
+           std::vector<float>, 
+           std::vector<float>> 
+get_data_from_csv(const std::string csv_file, 
+                  const std::string country)
 {
   // utility function: tokenize a csv line
   auto tokenize = [] (const std::string line, const char delim = ' ') 
@@ -15,10 +19,9 @@ std::vector<float> read_data_from_csv(const std::string csv_file,
     {
       tokens.push_back(token);
     }
-
     return tokens;
   };
-  
+
   // utility function: tell if string is a digit
   auto is_digit = [](const std::string str) 
   {
@@ -27,19 +30,19 @@ std::vector<float> read_data_from_csv(const std::string csv_file,
   };
 
   const size_t min_tokens = 5; // date,location,new_cases,new_deaths,total_cases,(total_deaths)
-  std::vector<float> data;
+  std::vector<float> new_cases, new_deaths, tot_cases, tot_deaths;
   std::string line;
-  
+
   // Open csv file
   std::ifstream file(csv_file, std::ios::in);
   if (!file.good()) 
   {
     std::cout << "Cannot find csv file: " << csv_file << std::endl;
-    return data;
+    return {};
   }
-  
+
   // Parse csv file
-  while(std::getline(file, line))
+  while (std::getline(file, line))
   {
     if (line.empty()) continue;  // skip empty line
     if (line.find("date") != std::string::npos) continue; // skip header
@@ -48,29 +51,32 @@ std::vector<float> read_data_from_csv(const std::string csv_file,
     if (tokens.size() < min_tokens) 
     {
       std::cout << "Num. csv tokens is " << tokens.size() << " less than " 
-                << min_tokens << ". Skip this line!" << std::endl;
+	<< min_tokens << ". Skip this line!" << std::endl;
       continue; 
     }
 
-    std::string date      = tokens[0];
-    std::string location  = tokens[1];
-    float new_cases       = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
-    float new_deaths      = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
-    float total_cases     = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
-    float total_deaths    = tokens.size() > min_tokens ? 
-                            (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
-    
+    std::string read_date     = tokens[0];
+    std::string read_country  = tokens[1];
+    float read_new_cases      = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
+    float read_new_deaths     = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
+    float read_tot_cases      = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
+    float read_tot_deaths     = tokens.size() > min_tokens ? (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
+
     // Fill data vector
-    if (location == country) 
+    if (read_country == country) 
     {
-      std::cout << location << ", " << date << ": " 
-	        << "new cases = " << new_cases << ", new deaths = " << new_deaths 
-		<< ", total_cases = " << total_cases << ", total_deaths = " << total_deaths << std::endl;
-      data.push_back(total_deaths);
+      std::cout << read_country << ", " << read_date << ": " 
+	<< "new cases = " << read_new_cases << ", new deaths = " << read_new_deaths 
+	<< ", total_cases = " << read_tot_cases << ", total_deaths = " << read_tot_deaths << std::endl;
+
+      new_cases.push_back( read_new_cases );
+      new_deaths.push_back( read_new_deaths );
+      tot_cases.push_back( read_tot_cases );
+      tot_deaths.push_back( read_tot_deaths );
     }
   }
 
-  return data;
+  return std::make_tuple(new_cases, new_deaths, tot_cases, tot_deaths);
 }
 
 /********************/
@@ -78,39 +84,44 @@ std::vector<float> read_data_from_csv(const std::string csv_file,
 /********************/
 void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
                   std::string country = "Italy",
+                  std::string dataset_name = "total_deaths",
 		  int days_to_pred = 3,
                   bool y_in_log = false)
 {
-  // Set data
-  //std::vector<float> cases = {3, 16, 79, 157, 229, 322, 400, 650, 888, 1128, 1694, 2036, 2502, 3089, 3858, 4636, 5883, 7375, 9172, 10149, 
-  //                            12462, 15113, 17660, 21157, 24747, 27980};
-
+  // Get data from csv 
   const std::string csv_file{"full_data.csv"};
-  std::vector<float> cases = read_data_from_csv(csv_file, country);
-  std::vector<float> days(cases.size());
-  for (size_t i = 0; i < cases.size(); i++) days[i] = i + 1; 
- 
-  // Set errors
-  std::vector<float> e_days(days.size(), 0.0); 
-  std::vector<float> e_cases(cases.size(), 0.0);
-  std::transform(cases.begin(), cases.end(), e_cases.begin(), [] (const float N) { return std::sqrt(N); }); 
-
+  auto dataset = get_data_from_csv(csv_file, country);
+  
   // Sanity checks
-  if (days.size() == 0) 
+  std::string y_title;
+  std::vector<float> data; 
+  std::vector<float> days(std::get<0>(dataset).size());
+  std::iota(days.begin(), days.end(), 0);
+
+  if (dataset_name == "total_cases") 
+  {
+    data = std::get<2>(dataset);
+    y_title = "Total cases";
+  }
+  else if (dataset_name == "total_deaths") 
+  {
+    data = std::get<3>(dataset);
+    y_title = "Total deaths";
+  }
+  else 
+  {
+    std::cout << "No dataset " << dataset_name << " known! Exit!" << std::endl;
+    return;
+  }
+
+  if (data.size() == 0) 
   {
     std::cout << "No data available!" << std::endl;
     return;
   }
 
-  if (days.size() != cases.size()) 
-  {
-    std::cout << "Set " << days.size() << " days but " << cases.size() << " cases!" << std::endl;
-    return;
-  }
-
   if (fit_from_day == -1) fit_from_day = days.front();
   if (fit_to_day == -1) fit_to_day = days.back();
-
   if (fit_from_day >= fit_to_day) 
   {
     std::cout << "Wrong fit range!" << std::endl;
@@ -123,13 +134,18 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
     days_to_pred = 0;
   }
 
+  // Set errors
+  std::vector<float> e_days(days.size(), 0.0); 
+  std::vector<float> e_data(data.size(), 0.0);
+  std::transform(data.begin(), data.end(), e_data.begin(), [] (const float N) { return std::sqrt(N); }); 
+
   // Make output file
   auto out_file = new TFile("corona_trend.root", "recreate");
 
   // Make graph
-  auto gr_data = new TGraphErrors (days.size(), days.data(), cases.data(), e_days.data(), e_cases.data());
+  auto gr_data = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
   gr_data->SetName("gr_data");
-  gr_data->SetTitle("Corona virus trend;Days;Total cases");
+  gr_data->SetTitle( Form("Corona virus trend;Days;%s", y_title.c_str()) );
 
   // Set style
   gStyle->SetTitleFontSize(0.07);
@@ -178,8 +194,8 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 0.25, 10.0, 1.0);
   //test_fun->FixParameter(1, 0.21);
-  //test_fun->FixParameter(2, 28.);
-  //test_fun->FixParameter(3, 1.);
+  //test_fun->FixParameter(2, 44.71);
+  //test_fun->FixParameter(3, 4.887);
 
   // Pick-up your preferred fit function
   auto fit_fun = test_fun;
@@ -200,12 +216,12 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   st->SetX2NDC(0.54);
   st->SetY2NDC(0.87);
 
-  // Print days after which cases double
+  // Print days after which data double
   if (std::string(fit_fun->GetName()) == "expo_fun" ||
       std::string(fit_fun->GetName()) == "test_fun")
   {
     float dt = log(2.0) / fit_fun->GetParameter(1);
-    auto txt_str = Form("Cases double after %1.1f days", dt);
+    auto txt_str = Form("Data double after %1.1f days", dt);
     float txt_x_pos = st->GetX1NDC();
     float txt_y_pos = 0.8 * st->GetY1NDC();
     if (y_in_log)
@@ -222,19 +238,19 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   // Draw predicted cases
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
   {
-    float cases = fit_fun->Eval(day);
+    float fit_val = fit_fun->Eval(day);
 
-    auto point = new TMarker(day, cases, 21);
+    auto point = new TMarker(day, fit_val, 21);
     point->SetMarkerSize(2);
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
-    gr_data->SetMaximum(1.2*cases);
+    gr_data->SetMaximum(1.2*fit_val);
     point->Draw("same");
 
     if (print_text)
     {
-      auto txt_str = (cases < 1.e5) ? Form("Exp: %1.0f", cases) : Form("Exp: %1.2e", cases);
-      auto text = new TText(day - 2, 1.05*cases, txt_str);
+      auto txt_str = (fit_val < 1.e5) ? Form("Exp: %1.0f", fit_val) : Form("Exp: %1.2e", fit_val);
+      auto text = new TText(day - 2, 1.05*fit_val, txt_str);
       text->SetTextSize(0.02);
       text->Draw("same");
     }
