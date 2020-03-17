@@ -1,10 +1,92 @@
+/**********************/
+/* Read data from csv */
+/**********************/
+std::vector<float> read_data_from_csv(const std::string csv_file, 
+                                      const std::string country)
+{
+  // utility function: tokenize a csv line
+  auto tokenize = [] (const std::string line, const char delim = ' ') 
+  {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream iss(line);
+
+    while (std::getline(iss, token, delim)) 
+    {
+      tokens.push_back(token);
+    }
+
+    return tokens;
+  };
+  
+  // utility function: tell if string is a digit
+  auto is_digit = [](const std::string str) 
+  {
+    if (str.empty()) return false;
+    else return std::all_of(str.begin(), str.end(), ::isdigit); 
+  };
+
+  const size_t min_tokens = 5; // date,location,new_cases,new_deaths,total_cases,(total_deaths)
+  std::vector<float> data;
+  std::string line;
+  
+  // Open csv file
+  std::ifstream file(csv_file, std::ios::in);
+  if (!file.good()) 
+  {
+    std::cout << "Cannot find csv file: " << csv_file << std::endl;
+    return data;
+  }
+  
+  // Parse csv file
+  while(std::getline(file, line))
+  {
+    if (line.empty()) continue;  // skip empty line
+    if (line.find("date") != std::string::npos) continue; // skip header
+
+    const auto tokens = tokenize(line, ',');
+    if (tokens.size() < min_tokens) 
+    {
+      std::cout << "Num. csv tokens is " << tokens.size() << " less than " 
+                << min_tokens << ". Skip this line!" << std::endl;
+      continue; 
+    }
+
+    std::string date      = tokens[0];
+    std::string location  = tokens[1];
+    float new_cases       = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
+    float new_deaths      = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
+    float total_cases     = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
+    float total_deaths    = tokens.size() > min_tokens ? 
+                            (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
+    
+    // Fill data vector
+    if (location == country) 
+    {
+      std::cout << location << ", " << date << ": " 
+	        << "new cases = " << new_cases << ", new deaths = " << new_deaths 
+		<< ", total_cases = " << total_cases << ", total_deaths = " << total_deaths << std::endl;
+      data.push_back(total_deaths);
+    }
+  }
+
+  return data;
+}
+
+/********************/
+/* Corona virus fit */
+/********************/
 void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
-                  bool y_in_log = false,
-		  int days_to_pred = 3)
+                  std::string country = "Italy",
+		  int days_to_pred = 3,
+                  bool y_in_log = false)
 {
   // Set data
-  std::vector<float> cases = {3, 16, 79, 157, 229, 322, 400, 650, 888, 1128, 1694, 2036, 2502, 3089, 3858, 4636, 5883, 7375, 9172, 10149, 
-                              12462, 15113, 17660, 21157, 24747, 27980};
+  //std::vector<float> cases = {3, 16, 79, 157, 229, 322, 400, 650, 888, 1128, 1694, 2036, 2502, 3089, 3858, 4636, 5883, 7375, 9172, 10149, 
+  //                            12462, 15113, 17660, 21157, 24747, 27980};
+
+  const std::string csv_file{"full_data.csv"};
+  std::vector<float> cases = read_data_from_csv(csv_file, country);
   std::vector<float> days(cases.size());
   for (size_t i = 0; i < cases.size(); i++) days[i] = i + 1; 
  
@@ -92,14 +174,14 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   test_fun->SetParName(3, "#sigma");
   test_fun->SetParLimits(0,  1e2, 1e7);
   test_fun->SetParLimits(1,  0.0,  1.0);
-  test_fun->SetParLimits(2., 0.1, 50.0);
+  test_fun->SetParLimits(2., 0.1, 100.0);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 0.25, 10.0, 1.0);
-  test_fun->FixParameter(1, 0.21);
+  //test_fun->FixParameter(1, 0.21);
   //test_fun->FixParameter(2, 28.);
   //test_fun->FixParameter(3, 1.);
 
-  // Pick-up your preferite fit function
+  // Pick-up your preferred fit function
   auto fit_fun = test_fun;
 
   // Fit
