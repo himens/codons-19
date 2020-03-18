@@ -198,7 +198,6 @@ void corona_trend(std::string country = "Italy",
     double db_rate = p[1];
     double R0 = log(2) / db_rate;
     return norm * exp(R0 * x[0]);
-
   };
 
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
