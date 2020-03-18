@@ -169,7 +169,7 @@ void corona_trend(std::string country = "Italy",
   // Make graph
   auto gr_data = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
   gr_data->SetName("gr_data");
-  gr_data->SetTitle( Form("Corona virus trend;Days;%s", y_title.c_str()) );
+  gr_data->SetTitle( Form("Corona virus trend: %s;Days;%s", country.c_str(), y_title.c_str()) );
   gr_data->GetXaxis()->SetTitleSize(0.045);
   gr_data->GetXaxis()->SetTitleOffset(0.8);
   gr_data->GetYaxis()->SetTitleSize(0.045);
@@ -205,7 +205,7 @@ void corona_trend(std::string country = "Italy",
   expo_fun->SetParName(1, "Doubling rate");
   expo_fun->SetParameters(1e-1, 1.0);
 
-  // 3) test 
+  // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
   {
     const double avg_incub_days = 5.0; // avg incubation time
