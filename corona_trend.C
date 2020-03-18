@@ -84,47 +84,25 @@ get_data_from_csv(const std::string csv_file,
 /********************/
 /* Corona virus fit */
 /********************/
-void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
-                  std::string country = "Italy",
+void corona_trend(std::string country = "Italy",
                   std::string dataset_name = "total_deaths",
+		  std::string fit_model_name = "test",
+		  float fit_from_day = -1, 
+		  float fit_to_day = -1,
 		  int days_to_pred = 3,
                   bool y_in_log = false)
-{
-  // Get data from csv 
-  const std::string csv_file{"full_data.csv"};
-  auto dataset = get_data_from_csv(csv_file, country);
-  
+{ 
   // Sanity checks
-  std::string y_title;
-  std::vector<float> data; 
-  std::vector<float> days(std::get<0>(dataset).size());
-  std::iota(days.begin(), days.end(), 0);
-
-  if (dataset_name == "total_cases") 
-  {
-    data = std::get<2>(dataset);
-    y_title = "Total cases";
-  }
-  else if (dataset_name == "total_deaths") 
-  {
-    data = std::get<3>(dataset);
-    y_title = "Total deaths";
-  }
-  else 
+  if (dataset_name != "total_cases" &&
+      dataset_name != "total_deaths") 
   {
     std::cout << "No dataset " << dataset_name << " known! Exit!" << std::endl;
     return;
   }
 
-  if (data.size() == 0) 
-  {
-    std::cout << "No data available!" << std::endl;
-    return;
-  }
-
-  if (fit_from_day == -1) fit_from_day = days.front();
-  if (fit_to_day == -1) fit_to_day = days.back();
-  if (fit_from_day >= fit_to_day) 
+  if (fit_from_day != -1 && 
+      fit_to_day != -1 &&
+      fit_from_day >= fit_to_day) 
   {
     std::cout << "Wrong fit range!" << std::endl;
     return;
@@ -134,6 +112,42 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   {
     std::cout << "Numer of days to predict are negative!" << std::endl;
     days_to_pred = 0;
+  }
+
+  if (fit_model_name != "expo" && 
+      fit_model_name != "erf" && 
+      fit_model_name != "test")
+  {
+    std::cout << "Fit model " << fit_model_name << " not known! Exit!" << std::endl;
+    return;
+  }
+
+  // Get data from csv 
+  const std::string csv_file{"full_data.csv"};
+  auto dataset = get_data_from_csv(csv_file, country);
+  const size_t data_size = std::get<0>(dataset).size();
+
+  if (data_size == 0) 
+  {
+    std::cout << "No data available!" << std::endl;
+    return;
+  }
+
+  // Set data
+  std::string y_title;
+  std::vector<float> data(data_size); 
+  std::vector<float> days(data_size);
+  std::iota(days.begin(), days.end(), 1);
+
+  if (dataset_name == "total_cases") 
+  {
+    data = std::get<2>(dataset);
+    y_title = "Total cases";
+  }
+  if (dataset_name == "total_deaths") 
+  {
+    data = std::get<3>(dataset);
+    y_title = "Total deaths";
   }
 
   // Set errors
@@ -173,41 +187,65 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   gr_data->SetMinimum(0.0);
   gr_data->Draw("apl");
 
-  // Fit functions
-  auto expo_fun = new TF1("expo_fun", "[0] * exp([1] * x)", 0., 1e3); // exp
+  // Fit functions 
+  // exponential
+  auto expo_fun = new TF1("expo_fun", "[0] * exp([1] * x)", 0., 1e3); 
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Grow rate");
   expo_fun->SetParameters(1e1, 0.5);
 
-  auto erf_fun = new TF1("erf_fun", "[0] * (1. + TMath::Erf(sqrt(2.) * (x - [1]) / [2]))", 0., 1e3); // erf
+  // ERF
+  auto erf_fun = new TF1("erf_fun", "[0] * (1. + TMath::Erf(sqrt(2.) * (x - [1]) / [2]))", 0., 1e3); 
   erf_fun->SetParName(0, "Norm");
   erf_fun->SetParName(1, "Peak day");
   erf_fun->SetParName(2, "Critical days (2#sigma)");
   erf_fun->SetParameters(5e4, 10., 10.);
 
-  auto test_fun = new TF1("test_fun", "[0] * exp( [1] * (x - [3] * log(exp([2]/[3]) + exp(x/[3]))) )", 0., 1e3); // test
+  // test 
+  auto my_fun = [](double *x, double *p) 
+  {
+    const double avg_incub_days = 5.0; // avg incubation time
+    const double epsi = 0.1;
+    double norm     = p[0];
+    double R0       = p[1];
+    double lock_day = p[2];
+    double sigma    = p[3];
+    double mu = lock_day + 2*sigma + avg_incub_days;
+
+    if (1./(1. + exp(-mu/sigma)) < 1.0 - epsi) return 0.0; // full popolation at day = 0
+    return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
+  };
+
+  auto test_fun = new TF1("test_fun", my_fun, 0, 1e3, 4); // test
   test_fun->SetParName(0, "Norm");
   test_fun->SetParName(1, "Grow rate");
-  test_fun->SetParName(2, "#mu");
-  test_fun->SetParName(3, "#sigma");
+  test_fun->SetParName(2, "Lockdown day");
+  test_fun->SetParName(3, "#sigma popolation");
   test_fun->SetParLimits(0,  1e2, 1e7);
-  test_fun->SetParLimits(1,  0.0,  1.0);
-  test_fun->SetParLimits(2., 10, 100.0);
+  test_fun->SetParLimits(1,  0.0, 1.0);
+  test_fun->SetParLimits(2., 0.1, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 0.25, 10.0, 1.0);
   //test_fun->FixParameter(1, 0.21);
-  //test_fun->FixParameter(2, 44.71);
-  //test_fun->FixParameter(3, 4.887);
+  //test_fun->FixParameter(2, 37.);
+  //test_fun->FixParameter(3, 3.4);
 
-  // Pick-up your preferred fit function
-  auto fit_fun = test_fun;
+  // Select fit function
+  TF1* fit_fun = nullptr;
+  if (fit_model_name == "expo") fit_fun = expo_fun; 
+  if (fit_model_name == "erf")  fit_fun = erf_fun; 
+  if (fit_model_name == "test") fit_fun = test_fun; 
 
-  // Fit
-  gStyle->SetOptFit(111);
   fit_fun->SetNpx(1e3);
   fit_fun->SetLineColor(kBlue);
   fit_fun->SetLineWidth(4);
-  gr_data->Fit(fit_fun, "VE", "", fit_from_day, fit_to_day);
+
+  // Fit
+  if (fit_from_day == -1) fit_from_day = days.front();
+  if (fit_to_day == -1) fit_to_day = days.back();
+
+  gStyle->SetOptFit(111);
+  gr_data->Fit(fit_fun, "E", "", fit_from_day, fit_to_day);
   gPad->Modified();
   gPad->Update();
 
@@ -219,8 +257,8 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   st->SetY2NDC(0.87);
 
   // Print days after which data double
-  if (std::string(fit_fun->GetName()) == "expo_fun" ||
-      std::string(fit_fun->GetName()) == "test_fun")
+  if (fit_model_name == "expo" ||
+      fit_model_name == "test")
   {
     float dt = log(2.0) / fit_fun->GetParameter(1);
     auto txt_str = Form("Data double after %1.1f days", dt);
@@ -246,7 +284,7 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
     point->SetMarkerSize(2);
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
-    gr_data->SetMaximum(1.2*fit_val);
+    gr_data->SetMaximum(1.2*std::max(fit_val, data.back()));
     point->Draw("same");
 
     if (print_text)
@@ -259,10 +297,10 @@ void corona_trend(float fit_from_day = -1, float fit_to_day = -1,
   };
 
   int pred_from_day = std::min(fit_to_day, days.back()) + 1;  
-  int pred_to_day = pred_from_day + days_to_pred;
-  for (int day = pred_from_day; day < pred_to_day; day++)
+  int pred_to_day = pred_from_day + days_to_pred - 1;
+  for (int day = pred_from_day; day <= pred_to_day; day++)
   {
-    bool print_text = days_to_pred < 5 ? true : (day == pred_to_day) ? true : false; 
+    bool print_text = days_to_pred < 5 ? true : ((day == pred_to_day) ? true : false); 
     draw_fit_point(day, print_text); 
   }
 
