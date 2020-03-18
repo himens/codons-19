@@ -203,7 +203,7 @@ void corona_trend(std::string country = "Italy",
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
-  expo_fun->SetParameters(1e4, 1.0);
+  expo_fun->SetParameters(1e-1, 1.0);
 
   // 3) test 
   auto my_test_fun = [] (double *x, double *p) 
