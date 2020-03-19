@@ -15,11 +15,7 @@ get_data_from_csv(const std::string csv_file,
     std::string token;
     std::istringstream iss(line);
 
-    while (std::getline(iss, token, delim)) 
-    {
-      tokens.push_back(token);
-    }
-
+    while (std::getline(iss, token, delim)) tokens.push_back(token);
     return tokens;
   };
 
@@ -70,9 +66,9 @@ get_data_from_csv(const std::string csv_file,
 	<< "new cases = " << read_new_cases << ", new deaths = " << read_new_deaths 
 	<< ", total_cases = " << read_tot_cases << ", total_deaths = " << read_tot_deaths << std::endl;
 
-      new_cases.push_back( read_new_cases );
+      new_cases .push_back( read_new_cases  );
       new_deaths.push_back( read_new_deaths );
-      tot_cases.push_back( read_tot_cases );
+      tot_cases .push_back( read_tot_cases  );
       tot_deaths.push_back( read_tot_deaths );
     }
   }
@@ -85,10 +81,10 @@ get_data_from_csv(const std::string csv_file,
 /* Corona virus fit */
 /********************/
 void corona_trend(std::string country = "Italy",
-                  std::string dataset_name = "total_deaths",
+                  std::string dataset_name = "total_cases",
 		  std::string fit_model_name = "test",
-		  float fit_from_day = -1, 
-		  float fit_to_day = -1,
+		  float fit_from_day = 0.0, 
+		  float fit_to_day = -1.0,
 		  int days_to_pred = 3,
                   bool y_in_log = false)
 { 
@@ -100,11 +96,10 @@ void corona_trend(std::string country = "Italy",
     return;
   }
 
-  if (fit_from_day != -1 && 
-      fit_to_day != -1 &&
-      fit_from_day >= fit_to_day) 
+  if (fit_from_day < 0.0 || 
+      (fit_to_day != -1.0 && fit_from_day >= fit_to_day)) 
   {
-    std::cout << "Wrong fit range!" << std::endl;
+    std::cout << "Wrong fit range [" << fit_from_day << ", " << fit_to_day << "]!" << std::endl;
     return;
   }
 
@@ -157,7 +152,7 @@ void corona_trend(std::string country = "Italy",
   // Set errors
   std::vector<float> e_days(days.size(), 0.0); 
   std::vector<float> e_data(data.size(), 0.0);
-  std::transform(data.begin(), data.end(), e_data.begin(), [] (const float N) { return std::sqrt(N); }); 
+  std::transform(data.begin(), data.end(), e_data.begin(), [] (const float N) { return sqrt(N); }); 
 
   // Set fit range
   if (fit_from_day == -1) fit_from_day = days.front();
