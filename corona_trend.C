@@ -155,8 +155,8 @@ void corona_trend(std::string country = "Italy",
   std::transform(data.begin(), data.end(), e_data.begin(), [] (const float N) { return sqrt(N); }); 
 
   // Set fit range
-  if (fit_from_day == -1) fit_from_day = days.front();
-  if (fit_to_day == -1) fit_to_day = days.back();
+  if (fit_from_day == 0.0) fit_from_day = days.front();
+  if (fit_to_day == -1.0)  fit_to_day = days.back();
 
   // Make output file
   auto out_file = new TFile("corona_trend.root", "recreate");
