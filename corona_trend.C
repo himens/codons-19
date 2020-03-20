@@ -5,7 +5,7 @@ std::tuple<std::vector<float>,
            std::vector<float>, 
            std::vector<float>, 
            std::vector<float>> 
-get_data_from_csv(const std::string csv_file, 
+get_data_from_csv(const std::string csv_file_name, 
                   const std::string country)
 {
   // utility function: tokenize a csv line
@@ -19,22 +19,25 @@ get_data_from_csv(const std::string csv_file,
     return tokens;
   };
 
-  // utility function: tell if string is a digit
-  auto is_digit = [] (const std::string str) 
+  // utility function: convert string to digit
+  auto to_digit = [] (const std::string str)
   {
-    if (str.empty()) return false;
-    else return std::all_of(str.begin(), str.end(), ::isdigit); 
-  };
+    float digit = 0.0;
+    bool is_digit = std::any_of(str.begin(), str.end(), ::isdigit);
 
-  const size_t min_tokens = 5; // date,location,new_cases,new_deaths,total_cases,(total_deaths)
-  std::vector<float> new_cases, new_deaths, tot_cases, tot_deaths;
+    if (is_digit) digit = std::stof(str);
+    return digit;
+  };
+  
+  const size_t num_tokens = 6; 
+  std::vector<float> data1, data2, data3, data4;
   std::string line;
 
   // Open csv file
-  std::ifstream file(csv_file, std::ios::in);
+  std::ifstream file(csv_file_name, std::ios::in);
   if (!file.good()) 
   {
-    std::cout << "Cannot find csv file: " << csv_file << std::endl;
+    std::cout << "Cannot find csv file: " << csv_file_name << std::endl;
     return {};
   }
 
@@ -42,38 +45,36 @@ get_data_from_csv(const std::string csv_file,
   while (std::getline(file, line))
   {
     if (line.empty()) continue;  // skip empty line
-    if (line.find("date") != std::string::npos) continue; // skip header
 
+    // Tokenize
     const auto tokens = tokenize(line, ',');
-    if (tokens.size() < min_tokens) 
+    if (tokens.size() != num_tokens) 
     {
-      std::cout << "Num. csv tokens is " << tokens.size() << " less than " 
-	<< min_tokens << ". Skip this line!" << std::endl;
+      std::cout << "Found " << tokens.size() << " tokens, " << num_tokens << " expected!" << std::endl;
       continue; 
     }
 
+    // Parse data
     std::string read_date    = tokens[0];
     std::string read_country = tokens[1];
-    float read_new_cases     = is_digit(tokens[2]) ? std::stof(tokens[2]) : 0.0;
-    float read_new_deaths    = is_digit(tokens[3]) ? std::stof(tokens[3]) : 0.0;
-    float read_tot_cases     = is_digit(tokens[4]) ? std::stof(tokens[4]) : 0.0;
-    float read_tot_deaths    = tokens.size() > min_tokens ? (is_digit(tokens[5]) ? std::stof(tokens[5]) : 0.0) : 0.0;
+    float read_new_cases     = to_digit( tokens[2] );
+    float read_new_deaths    = to_digit( tokens[3] );
+    float read_tot_cases     = to_digit( tokens[4] );
+    float read_tot_deaths    = to_digit( tokens[5] );
 
-    // Fill data vector
     if (read_country == country) 
     {
       std::cout << read_country << ", " << read_date << ": " 
-	<< "new cases = " << read_new_cases << ", new deaths = " << read_new_deaths 
-	<< ", total_cases = " << read_tot_cases << ", total_deaths = " << read_tot_deaths << std::endl;
+	<< "total_cases = " << read_tot_cases << ", total_deaths = " << read_tot_deaths << std::endl;
 
-      new_cases .push_back( read_new_cases  );
-      new_deaths.push_back( read_new_deaths );
-      tot_cases .push_back( read_tot_cases  );
-      tot_deaths.push_back( read_tot_deaths );
+      data1.push_back( read_tot_cases  );
+      data2.push_back( read_tot_deaths );
+      data3.push_back( read_new_cases  );
+      data4.push_back( read_new_deaths );
     }
   }
 
-  return std::make_tuple(new_cases, new_deaths, tot_cases, tot_deaths);
+  return std::make_tuple(data1, data2, data3, data4);
 }
 
 
@@ -140,12 +141,12 @@ void corona_trend(std::string country = "Italy",
 
   if (dataset_name == "total_cases") 
   {
-    data = std::get<2>(dataset);
+    data = std::get<0>(dataset);
     y_title = "Total cases";
   }
   if (dataset_name == "total_deaths") 
   {
-    data = std::get<3>(dataset);
+    data = std::get<1>(dataset);
     y_title = "Total deaths";
   }
 
@@ -198,7 +199,7 @@ void corona_trend(std::string country = "Italy",
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
-  expo_fun->SetParameters(1e-1, 1.0);
+  expo_fun->SetParameters(1e-1, 0.5);
 
   // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
@@ -222,7 +223,7 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParName(2, "Lockdown day");
   test_fun->SetParName(3, "#sigma population");
   test_fun->SetParLimits(0,  1e2, 1e7);
-  test_fun->SetParLimits(1,  1.0, 10.0);
+  test_fun->SetParLimits(1,  0.5, 10.0);
   test_fun->SetParLimits(2., 0.1, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
@@ -260,7 +261,7 @@ void corona_trend(std::string country = "Italy",
     point->SetMarkerSize(2);
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
-    gr_data->SetMaximum(1.2*std::max(fit_val, data.back()));
+    gr_data->SetMaximum(1.2*fit_val);
     point->Draw("same");
 
     if (print_text)
