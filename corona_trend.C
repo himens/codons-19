@@ -18,13 +18,18 @@ get_data_from_csv(const std::string csv_file_name,
     return tokens;
   };
 
+  // utility function: tell if string is a digit
+  auto is_digit = [] (const std::string str)
+  {
+    return std::all_of(str.begin(), str.end(), ::isdigit);
+  };
+
   // utility function: convert string to digit
-  auto to_digit = [] (const std::string str)
+  auto to_digit = [&] (const std::string str)
   {
     float digit = 0.0;
-    bool is_digit = std::any_of(str.begin(), str.end(), ::isdigit);
-
-    if (is_digit) digit = std::stof(str);
+    if (is_digit(str)) digit = std::stof(str);
+    
     return digit;
   };
   
@@ -47,6 +52,10 @@ get_data_from_csv(const std::string csv_file_name,
   std::vector<std::string> states, regions;
   std::string line;
 
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  std::cout << " Read CSV data from file: " << csv_file_name                          << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
   // Open csv file
   std::ifstream file(csv_file_name, std::ios::in);
   if (!file.good()) 
@@ -62,6 +71,7 @@ get_data_from_csv(const std::string csv_file_name,
 
     // Tokenize
     const auto tokens = tokenize(line, ',');
+    if (std::none_of(tokens.begin(), tokens.end(), is_digit)) continue; // skip header
     if (tokens.size() != num_tokens) 
     {
       std::cout << "Found " << tokens.size() << " tokens, " << num_tokens << " expected!" << std::endl;
@@ -106,7 +116,7 @@ get_data_from_csv(const std::string csv_file_name,
   { 
     if (req_region.empty()) // no region requested... sum data over regions
     {
-      std::cout << "No region requested. Sum data over regions" << std::endl; 
+      std::cout << "No region requested. Sum data over regions..." << std::endl; 
       tot_cases  = sum_data( tot_cases_map[req_state] );
       tot_deaths = sum_data( tot_deaths_map[req_state] );
     }
@@ -197,7 +207,12 @@ void corona_trend(std::string country = "Italy",
   }
 
   std::vector<float> days(data.size()); 
-  std::iota(days.begin(), days.end(), 1);
+  std::iota(days.begin(), days.end(), 0); // from day 0
+
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  std::cout <<  " " << y_title << " for " << country << ", region " << region         << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  for (auto day : days) std::cout << "Day = " << day << ", data = " << data[day]      << std::endl;
 
   // Set errors
   std::vector<float> e_days(days.size(), 0.0); 
@@ -254,22 +269,22 @@ void corona_trend(std::string country = "Italy",
   auto my_test_fun = [] (double *x, double *p) 
   {
     const double avg_incub_days = 5.0; // avg incubation time
-    const double epsi = 0.1;
+    const double thr = 0.99;
     double norm     = p[0];
     double db_rate  = p[1];
-    double lock_day = p[2];
+    double mu       = p[2];
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
-    double mu = lock_day + 2*sigma + avg_incub_days;
+    //double mu = lock_day + 2*sigma + avg_incub_days;
 
-    if (1./(1. + exp(-mu/sigma)) < 1.0 - epsi) return 0.0; // full population at day = 0
+    //if (1./(1. + exp(-mu/sigma)) > thr) return norm * exp(R0 * x[0]);
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
   auto test_fun = new TF1("test_fun", my_test_fun, 0, 1e3, 4); // test
   test_fun->SetParName(0, "Norm");
   test_fun->SetParName(1, "Doubling rate");
-  test_fun->SetParName(2, "Lockdown day");
+  test_fun->SetParName(2, "Half-max population");
   test_fun->SetParName(3, "#sigma population");
   test_fun->SetParLimits(0,  1e2, 1e7);
   test_fun->SetParLimits(1,  1.0, 10.0);
@@ -290,12 +305,15 @@ void corona_trend(std::string country = "Italy",
   fit_fun->SetLineWidth(4);
 
   // Fit
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  std::cout << " Fit with " << fit_model_name << " in range [" << fit_from_day << ", " << fit_to_day << "]" << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   if (fit_from_day > days.back() || fit_to_day < days.front()) 
   {
     std::cout << "No data in fit range! Cannot fit!" << std::endl; 
     return;
   }
-  gr_data->Fit(fit_fun, "E", "", fit_from_day, fit_to_day);
+  gr_data->Fit(fit_fun, "VE", "", fit_from_day, fit_to_day);
   gPad->Modified();
   gPad->Update();
 
