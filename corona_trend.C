@@ -92,8 +92,11 @@ get_data_from_csv(const std::string csv_file_name,
     std::string day     = tokens[0];
     std::string state   = tokens[1];
     std::string region  = tokens[3];
+    float tot_act_cases = to_digit( tokens[10] );
+    float new_act_cases = to_digit( tokens[11] );
     float deaths        = to_digit( tokens[13] );
     float cases         = to_digit( tokens[14] );
+    float tampons       = to_digit( tokens[15] );
 
     tot_cases_map[state][region].push_back( cases ); 
     tot_deaths_map[state][region].push_back(  deaths );
@@ -117,6 +120,7 @@ get_data_from_csv(const std::string csv_file_name,
     if (req_region.empty()) // no region requested... sum data over regions
     {
       std::cout << "No region requested. Sum data over regions..." << std::endl; 
+
       tot_cases  = sum_data( tot_cases_map[req_state] );
       tot_deaths = sum_data( tot_deaths_map[req_state] );
     }
@@ -263,7 +267,7 @@ void corona_trend(std::string country = "Italy",
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
-  expo_fun->SetParameters(1e-1, 0.5);
+  expo_fun->SetParameters(1e-1, 1.0);
 
   // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
@@ -291,9 +295,9 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParLimits(2., 1.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  //test_fun->FixParameter(1, 3.3);
+  test_fun->FixParameter(1, 2.0);
   //test_fun->FixParameter(2, 37.);
-  //test_fun->FixParameter(3, 3.4);
+  //test_fun->FixParameter(3, 5);
 
   // Select fit function
   TF1* fit_fun = nullptr;
