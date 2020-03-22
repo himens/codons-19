@@ -57,7 +57,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 	    char c = ',';
 	    Int_t loc = datarow.Last(c);
 	    TString chopped = datarow(loc+1, loc+10);
-	    casi[day] = chopped.Atoi()*10;
+	    casi[day] = chopped.Atoi();
 	  }
 	}
       day++;
