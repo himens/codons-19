@@ -98,15 +98,15 @@ get_data_from_csv(const std::string csv_file_name,
     float cases         = to_digit( tokens[14] );
     float tampons       = to_digit( tokens[15] );
 
-    tot_cases_map[state][region].push_back( cases ); 
-    tot_deaths_map[state][region].push_back(  deaths );
+    tot_cases_map[state][region] .push_back( cases ); 
+    tot_deaths_map[state][region].push_back( deaths );
     
-    if (std::find(states.begin(), states.end(), state) == states.end())     states.push_back( state );
+    if (std::find(states.begin(), states.end(), state)    == states.end())  states.push_back( state );
     if (std::find(regions.begin(), regions.end(), region) == regions.end()) regions.push_back( region );
 
-    if (state == req_state)
+    if (state == req_state && 
+	(region == req_region || req_region.empty()))
     {
-      if (region == req_region || req_region.empty())
       std::cout << "Read day: " << day << ", state: " << state << ", region: " << region 
 	<< ", cases: " << cases << ", deaths: " << deaths << std::endl;
     }
@@ -124,17 +124,17 @@ get_data_from_csv(const std::string csv_file_name,
       tot_cases  = sum_data( tot_cases_map[req_state] );
       tot_deaths = sum_data( tot_deaths_map[req_state] );
     }
+
     else if (std::find(regions.begin(), regions.end(), req_region) != regions.end()) 
     {
       tot_cases  = tot_cases_map[req_state][req_region];
       tot_deaths = tot_deaths_map[req_state][req_region];
     }   
+
     else std::cout << "Data for region " << req_region << " not found!" << std::endl;
   }
-  else 
-  {
-    std::cout << "Data for state " << req_state << " not found!" << std::endl;
-  }
+
+  else std::cout << "Data for state " << req_state << " not found!" << std::endl;
 
   return std::make_tuple(tot_cases, tot_deaths);
 }
@@ -273,7 +273,7 @@ void corona_trend(std::string country = "Italy",
   auto my_test_fun = [] (double *x, double *p) 
   {
     const double avg_incub_days = 5.0; // avg incubation time
-    const double thr = 0.99;
+    //const double thr = 0.9;
     double norm     = p[0];
     double db_rate  = p[1];
     double mu       = p[2];
@@ -281,7 +281,7 @@ void corona_trend(std::string country = "Italy",
     double R0 = log(2) / db_rate;
     //double mu = lock_day + 2*sigma + avg_incub_days;
 
-    //if (1./(1. + exp(-mu/sigma)) > thr) return norm * exp(R0 * x[0]);
+    //if (1./(1. + exp((x[0]-mu)/sigma)) > thr) return norm * exp(R0 * x[0]);
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
@@ -295,7 +295,7 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParLimits(2., 1.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  test_fun->FixParameter(1, 2.0);
+  //test_fun->FixParameter(1, 2.0);
   //test_fun->FixParameter(2, 37.);
   //test_fun->FixParameter(3, 5);
 
