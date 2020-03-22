@@ -272,16 +272,12 @@ void corona_trend(std::string country = "Italy",
   // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
   {
-    const double avg_incub_days = 5.0; // avg incubation time
-    //const double thr = 0.9;
     double norm     = p[0];
     double db_rate  = p[1];
     double mu       = p[2];
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
-    //double mu = lock_day + 2*sigma + avg_incub_days;
 
-    //if (1./(1. + exp((x[0]-mu)/sigma)) > thr) return norm * exp(R0 * x[0]);
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
@@ -295,7 +291,7 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParLimits(2., 1.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  //test_fun->FixParameter(1, 2.0);
+  //test_fun->FixParameter(1, 3.3); // from fit to Lombardia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
   //test_fun->FixParameter(3, 5);
 
