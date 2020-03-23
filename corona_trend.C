@@ -303,7 +303,7 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParLimits(2., 1.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
   test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  test_fun->FixParameter(1, 3.1); // from fit to Lombardia [6-14] (pure expo.)
+  //test_fun->FixParameter(1, 3.1); // from fit to Lombardia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
   //test_fun->FixParameter(3, 5);
 
