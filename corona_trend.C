@@ -4,6 +4,7 @@
 std::tuple<std::vector<float>, 
            std::vector<float>> 
 get_data_from_csv(const std::string csv_file_name, 
+                  const std::string format_name,
                   const std::string req_state,
                   const std::string req_location)
 {
@@ -51,6 +52,15 @@ get_data_from_csv(const std::string csv_file_name,
   std::cout << " Read CSV data from file: " << csv_file_name                          << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
+  // Sanity checks
+  if (format_name != "ecdc" &&
+      format_name != "PC regioni" &&
+      format_name != "PC province")
+  {
+    std::cout << "No csv format " << format_name << " known!" << std::endl;
+    return {};
+  }
+
   // Open csv file
   std::ifstream file(csv_file_name, std::ios::in);
   if (!file.good()) 
@@ -65,9 +75,11 @@ get_data_from_csv(const std::string csv_file_name,
   const size_t num_tokens = tokenize(header, ',').size();
 
   // Parse csv file
-  std::string line;
   std::map<std::string, std::map<std::string, std::vector<float>>> tot_cases_map, tot_deaths_map;
   std::vector<std::string> states, locations;
+  std::string line;
+  std::string day, state, location;
+  float cases, deaths;
 
   while (std::getline(file, line))
   {
@@ -83,30 +95,37 @@ get_data_from_csv(const std::string csv_file_name,
 
     // Data format
     // ECDC
-    //std::string day    = tokens[0];
-    //std::string state  = tokens[1];
-    //std::string location = "";
-    //float new_cases    = to_digit( tokens[2] );
-    //float new_deaths   = to_digit( tokens[3] );
-    //float cases        = to_digit( tokens[4] );
-    //float deaths       = to_digit( tokens[5] );
+    if (format_name == "ecdc")
+    {
+      day              = tokens[0];
+      state            = tokens[1];
+      cases            = to_digit( tokens[4] );
+      deaths           = to_digit( tokens[5] );
+      float new_cases  = to_digit( tokens[2] );
+      float new_deaths = to_digit( tokens[3] );
+    }
 
     // Protezione Civile (regioni)
-    //std::string day     = tokens[0];
-    //std::string state   = tokens[1];
-    //std::string region  = tokens[3];
-    //float tot_act_cases = to_digit( tokens[10] );
-    //float new_act_cases = to_digit( tokens[11] );
-    //float deaths        = to_digit( tokens[13] );
-    //float cases         = to_digit( tokens[14] );
-    //float tampons       = to_digit( tokens[15] );
+    if (format_name == "PC regioni")
+    {
+      day                 = tokens[0];
+      state               = tokens[1];
+      location            = tokens[3];
+      deaths              = to_digit( tokens[13] );
+      cases               = to_digit( tokens[14] );
+      float tot_act_cases = to_digit( tokens[10] );
+      float new_act_cases = to_digit( tokens[11] );
+      float tampons       = to_digit( tokens[15] );
+    }
 
     // Protezione Civile (province)
-    std::string day      = tokens[0];
-    std::string state    = tokens[1];
-    std::string location = tokens[5];
-    float cases          = to_digit( tokens[9] );
-    float deaths         = 0.0;
+    if (format_name == "PC province")
+    {
+      day      = tokens[0];
+      state    = tokens[1];
+      location = tokens[5];
+      cases    = to_digit( tokens[9] );
+    }
 
     tot_cases_map[state][location] .push_back( cases ); 
     tot_deaths_map[state][location].push_back( deaths );
@@ -155,7 +174,9 @@ get_data_from_csv(const std::string csv_file_name,
 /********************/
 /* Corona virus fit */
 /********************/
-void corona_trend(std::string country = "Italy",
+void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
+                  std::string format_name = "PC province",
+                  std::string country = "Italy",
                   std::string location = "",
                   std::string dataset_name = "total_cases",
 		  std::string fit_model_name = "test",
@@ -198,8 +219,7 @@ void corona_trend(std::string country = "Italy",
   gStyle->SetOptFit(111);
 
   // Get data from csv 
-  const std::string csv_file_name{"full_data.csv"};
-  auto dataset = get_data_from_csv(csv_file_name, country, location); 
+  auto dataset = get_data_from_csv(csv_file_name, format_name, country, location); 
 
   // Set data
   std::string y_title;
@@ -273,13 +293,13 @@ void corona_trend(std::string country = "Italy",
     double norm    = p[0];
     double db_rate = p[1];
     double R0 = log(2) / db_rate;
-    return norm * exp(R0 * x[0]);
+    return exp(norm + R0 * x[0]);
   };
 
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
-  expo_fun->SetParameters(1e-1, 1.0);
+  expo_fun->SetParameters(1.0, 1.0);
 
   // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
@@ -290,7 +310,7 @@ void corona_trend(std::string country = "Italy",
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
 
-    return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
+    return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
   auto test_fun = new TF1("test_fun", my_test_fun, 0, 1e3, 4); // test
@@ -298,12 +318,13 @@ void corona_trend(std::string country = "Italy",
   test_fun->SetParName(1, "Doubling rate");
   test_fun->SetParName(2, "Half-max population");
   test_fun->SetParName(3, "#sigma population");
-  test_fun->SetParLimits(0,  1e2, 1e7);
+  test_fun->SetParLimits(0,  1.0, 1e3);
   test_fun->SetParLimits(1,  1.0, 10.0);
-  test_fun->SetParLimits(2., 1.0, 1e3);
+  test_fun->SetParLimits(2., 10.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
-  test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  //test_fun->FixParameter(1, 3.1); // from fit to Lombardia [6-14] (pure expo.)
+  test_fun->SetParameters(1.0, 1.0, 10.0, 1.0);
+  //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
+  //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
   //test_fun->FixParameter(3, 5);
 
