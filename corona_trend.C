@@ -383,13 +383,13 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
     if (y_in_log) gr_data->SetMaximum(10 * fit_val);
-    else  gr_data->SetMaximum(1.2 * fit_val);
+    else gr_data->SetMaximum(1.2 * fit_val);
     point->Draw("same");
 
     if (print_text)
     {
-      auto txt_str = (fit_val < 1.e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
-      auto text = new TText(day - 3, fit_val, txt_str);
+      auto txt_str = (fit_val < 1e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
+      auto text = new TText(fit_val < 1e4 ? day - 5 : (fit_val < 1e5 ? day - 6 : day - 11), fit_val, txt_str);
       text->SetTextSize(0.02);
       text->Draw("same");
     }
