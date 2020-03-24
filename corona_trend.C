@@ -274,7 +274,12 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   gr_data->SetMarkerColor(kRed);
   gr_data->SetLineColor(kRed);
   gr_data->SetLineWidth(4);
-  gr_data->SetMinimum(0.0);
+  if (y_in_log) 
+  { 
+    gr_data->SetMinimum(1.0); 
+    gr_data->SetMaximum(10 * data.back()); 
+  }
+  else gr_data->SetMinimum(0.0);
 
   // Draw data
   auto canv = new TCanvas("canv", "", 1000, 1000);
@@ -377,7 +382,8 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     point->SetMarkerSize(2);
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
-    gr_data->SetMaximum(1.2*fit_val);
+    if (y_in_log) gr_data->SetMaximum(10 * fit_val);
+    else  gr_data->SetMaximum(1.2 * fit_val);
     point->Draw("same");
 
     if (print_text)
