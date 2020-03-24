@@ -241,7 +241,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   }
 
   data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
-  std::vector<float> days(data.size()); 
+  std::vector<float> days( data.size() ); 
   std::iota(days.begin(), days.end(), 0); // from day 0
 
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
@@ -389,7 +389,13 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     if (print_text)
     {
       auto txt_str = (fit_val < 1e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
-      auto text = new TText(fit_val < 1e4 ? day - 5 : (fit_val < 1e5 ? day - 6 : day - 11), fit_val, txt_str);
+      float txt_x_pos = day;
+      if (fit_val < 1e3) txt_x_pos -= 1;
+      else if (fit_val < 1e4) txt_x_pos -= 2;
+      else if (fit_val < 1e5) txt_x_pos -= 3;
+      else txt_x_pos -= 5; 
+
+      auto text = new TText(txt_x_pos, fit_val, txt_str);
       text->SetTextSize(0.02);
       text->Draw("same");
     }
@@ -412,7 +418,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     gr_deriv->SetLineWidth(4);
   }
 
-  // Draw Fermi fun. of test fun
+  // Draw test fun components
   if (fit_model_name == "test")
   {
     expo_fun->FixParameter(0, log(test_fun->Eval(0)));
