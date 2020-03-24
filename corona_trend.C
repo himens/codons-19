@@ -16,6 +16,7 @@ get_data_from_csv(const std::string csv_file_name,
     std::istringstream iss(line);
 
     while (std::getline(iss, token, delim)) tokens.push_back(token);
+
     return tokens;
   };
 
@@ -28,10 +29,7 @@ get_data_from_csv(const std::string csv_file_name,
   // utility function: convert string to digit
   auto to_digit = [&] (const std::string str)
   {
-    float digit = 0.0;
-    if (is_digit(str)) digit = std::stof(str);
-    
-    return digit;
+    return is_digit(str) ? std::stof(str) : 0.0;
   };
   
   // utility function: sum map data
@@ -75,9 +73,9 @@ get_data_from_csv(const std::string csv_file_name,
   const size_t num_tokens = tokenize(header, ',').size();
 
   // Parse csv file
+  std::string line;
   std::map<std::string, std::map<std::string, std::vector<float>>> tot_cases_map, tot_deaths_map;
   std::vector<std::string> states, locations;
-  std::string line;
   std::string day, state, location;
   float cases, deaths;
 
@@ -242,6 +240,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     return;
   }
 
+  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
   std::vector<float> days(data.size()); 
   std::iota(days.begin(), days.end(), 0); // from day 0
 
@@ -293,10 +292,15 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     double norm    = p[0];
     double db_rate = p[1];
     double R0 = log(2) / db_rate;
+
     return exp(norm + R0 * x[0]);
   };
 
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
+  expo_fun->SetNpx(1e3);
+  expo_fun->SetLineColor(kBlue);
+  expo_fun->SetLineStyle(kDashed);
+  expo_fun->SetLineWidth(4);
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
   expo_fun->SetParameters(1.0, 1.0);
@@ -310,10 +314,16 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
 
+    //if (1. / (1. + exp(-mu / sigma)) < 0.98) return 0.0;
+    if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
     return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
   auto test_fun = new TF1("test_fun", my_test_fun, 0, 1e3, 4); // test
+  test_fun->SetNpx(1e3);
+  test_fun->SetLineColor(kBlue);
+  test_fun->SetLineStyle(kDashed);
+  test_fun->SetLineWidth(4);
   test_fun->SetParName(0, "Norm");
   test_fun->SetParName(1, "Doubling rate");
   test_fun->SetParName(2, "Half-max population");
@@ -335,6 +345,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
 
   fit_fun->SetNpx(1e3);
   fit_fun->SetLineColor(kBlue);
+  fit_fun->SetLineStyle(kSolid);
   fit_fun->SetLineWidth(4);
 
   // Fit
@@ -371,8 +382,8 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
 
     if (print_text)
     {
-      auto txt_str = (fit_val < 1.e5) ? Form("Exp: %1.0f", fit_val) : Form("Exp: %1.2e", fit_val);
-      auto text = new TText(day - 2, 1.05*fit_val, txt_str);
+      auto txt_str = (fit_val < 1.e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
+      auto text = new TText(day - 3, fit_val, txt_str);
       text->SetTextSize(0.02);
       text->Draw("same");
     }
@@ -387,15 +398,47 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   }
 
   // Draw fit function derivative
-  auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("same");
-  gr_deriv->SetLineColor(kRed);
-  gr_deriv->SetLineStyle(kDashed);
-  gr_deriv->SetLineWidth(4);
+  if (!y_in_log)
+  {
+    auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("same");
+    gr_deriv->SetLineColor(kRed);
+    gr_deriv->SetLineStyle(kDashed);
+    gr_deriv->SetLineWidth(4);
+  }
+
+  // Draw Fermi fun. of test fun
+  if (fit_model_name == "test")
+  {
+    expo_fun->FixParameter(0, log(test_fun->Eval(0)));
+    expo_fun->FixParameter(1, test_fun->GetParameter(1));
+    expo_fun->Draw("same");
+
+    if (!y_in_log)
+    {
+      auto my_fermi_fun = [] (double *x, double *p)
+      {
+	double norm  = p[0];
+	double mu    = p[1];
+	double sigma = p[2];
+
+	return norm / (1. + exp((x[0] - mu) / sigma));
+      };
+
+      auto fermi_fun = new TF1("fermi_fun", my_fermi_fun, 0., 1e3, 3); 
+      fermi_fun->SetNpx(1e3);
+      fermi_fun->SetLineColor(kOrange);
+      fermi_fun->SetLineStyle(kDashed);
+      fermi_fun->SetLineWidth(4);
+      fermi_fun->FixParameter(0, 20 * test_fun->Eval(0));
+      fermi_fun->FixParameter(1, test_fun->GetParameter(2));
+      fermi_fun->FixParameter(2, test_fun->GetParameter(3));
+      fermi_fun->Draw("same");
+    }
+  }
 
   // Write output file
   canv->Write();
   gr_data->Write();
-  gr_deriv->Write();
   out_file->Write();
 };
   
