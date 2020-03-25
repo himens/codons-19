@@ -172,30 +172,30 @@ get_data_from_csv(const std::string csv_file_name,
 /********************/
 /* Corona virus fit */
 /********************/
-void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
-                  std::string format_name = "PC province",
-                  std::string country = "Italy",
-                  std::string location = "",
-                  std::string dataset_name = "total_cases",
-		  std::string fit_model_name = "test",
-		  float fit_from_day = 0.0, 
-		  float fit_to_day = -1.0,
-		  int days_to_pred = 3,
-                  bool y_in_log = false)
+TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
+                    std::string format_name = "PC province",
+                    std::string country = "ITA",
+                    std::string location = "",
+                    std::string dataset_name = "total_cases",
+		    std::string fit_model_name = "test",
+		    float fit_from_day = 0.0, 
+		    float fit_to_day = -1.0,
+		    int days_to_pred = 3,
+                    bool y_in_log = false)
 { 
   // Sanity checks
   if (dataset_name != "total_cases" &&
       dataset_name != "total_deaths") 
   {
     std::cout << "No dataset " << dataset_name << " known!" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (fit_from_day < 0.0 || 
       (fit_to_day != -1.0 && fit_from_day >= fit_to_day)) 
   {
     std::cout << "Wrong fit range [" << fit_from_day << ", " << fit_to_day << "]!" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (days_to_pred < 0)
@@ -208,7 +208,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
       fit_model_name != "test")
   {
     std::cout << "Fit model " << fit_model_name << " not known!" << std::endl;
-    return;
+    return nullptr;
   }
 
   // Set ROOT style
@@ -237,7 +237,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   if (data.size() == 0) 
   {
     std::cout << "Data size is zero!" << std::endl;
-    return;
+    return nullptr;
   }
 
   data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
@@ -360,7 +360,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   if (fit_from_day > days.back() || fit_to_day < days.front()) 
   {
     std::cout << "No data in fit range! Cannot fit!" << std::endl; 
-    return;
+    return nullptr;
   }
   gr_data->Fit(fit_fun, "VE", "", fit_from_day, fit_to_day);
   gPad->Modified();
@@ -391,8 +391,8 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
       auto txt_str = (fit_val < 1e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
       float txt_x_pos = day;
       if (fit_val < 1e3) txt_x_pos -= 1;
-      else if (fit_val < 1e4) txt_x_pos -= 2;
-      else if (fit_val < 1e5) txt_x_pos -= 3;
+      else if (fit_val < 1e4) txt_x_pos -= 3;
+      else if (fit_val < 1e5) txt_x_pos -= 4;
       else txt_x_pos -= 5; 
 
       auto text = new TText(txt_x_pos, fit_val, txt_str);
@@ -452,5 +452,7 @@ void corona_trend(std::string csv_file_name = "full_data_ita_prov.csv",
   canv->Write();
   gr_data->Write();
   out_file->Write();
+
+  return canv;
 };
   
