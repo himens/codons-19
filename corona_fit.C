@@ -70,7 +70,7 @@ get_data_from_csv(const std::string csv_file_name,
   // Get csv header 
   std::string header;
   std::getline(file, header);
-  const size_t num_tokens = tokenize(header, ',').size();
+  const size_t num_expected_tokens = tokenize(header, ',').size();
 
   // Parse csv file
   std::string line;
@@ -85,10 +85,18 @@ get_data_from_csv(const std::string csv_file_name,
 
     // Tokenize
     const auto tokens = tokenize(line, ',');
-    if (tokens.size() != num_tokens) 
+    const auto num_tokens = tokens.size();
+    if (num_tokens != num_expected_tokens) 
     {
-      std::cout << "Found " << tokens.size() << " tokens, " << num_tokens << " expected!" << std::endl;
-      continue; 
+      if (num_tokens == num_expected_tokens - 1)
+      {
+	std::cout << "Last token missing?" << std::endl;
+      }
+      else 
+      {
+	std::cout << "Found " << num_tokens << " tokens, " << num_expected_tokens << " expected!" << std::endl;
+	continue;
+      }
     }
 
     // Data format
@@ -370,7 +378,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   auto st = (TPaveStats*)gr_data->GetListOfFunctions()->FindObject("stats");
   st->SetX1NDC(0.2);
   st->SetY1NDC(0.66);
-  st->SetX2NDC(0.64);
+  st->SetX2NDC(0.54);
   st->SetY2NDC(0.88);
 
   // Draw predicted data
