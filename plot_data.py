@@ -2,7 +2,7 @@ from ROOT import gROOT
 from ROOT import TCanvas
 
 # Import function
-gROOT.LoadMacro("corona_trend.C")
+gROOT.LoadMacro("corona_fit.C")
 from ROOT import corona_fit
 
 # Batch mode
