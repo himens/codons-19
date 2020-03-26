@@ -13,13 +13,12 @@
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
-void PlotRegioni(TString Regione = "PI") {
+void PlotRegioni(TString Regione = "Emilia Romagna") {
   // vector to store cases
   Double_t ricoverati[1000], terap_intens[1000], ospedalizzati[1000], isolamento_domiciliare[1000], totali_positivi[1000], nuovi_positivi[1000], dimessi[1000], deceduti[1000], totali[1000], tamponi[1000], perc_tamponi[1000];
   // basenumber to index the file
   Int_t  daynumber, day = 0;
   Int_t loc;
-  //  TString Regione("PI");
   // loop on february
   for(Int_t iday = 24; iday<30; iday++) {
     TString datarow;
@@ -255,9 +254,10 @@ void PlotRegioni(TString Regione = "PI") {
   canv->cd(4)->SetTicky(1);
   canv->cd(4)->SetGridx(1);
   canv->cd(4)->SetGridy(1);
-  ptotali2->Fit(test_fun);
+  ptotali2->GetXaxis()->SetTitle("days");
+  ptotali2->Fit(test_fun,"","",10,30);
   ptotali2->Draw("ALP");
-  Int_t days_to_pred = 15;
+  Int_t days_to_pred = 25;
   
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
     {
