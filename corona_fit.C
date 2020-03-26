@@ -345,7 +345,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 10.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
-  test_fun->SetParameters(1.0, 1.0, 10.0, 1.0);
+  test_fun->SetParameters(1.0, 1.0, 10.0, 0.1);
   //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
   //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
