@@ -4,8 +4,9 @@
 std::tuple<std::vector<float>, 
            std::vector<float>> 
 get_data_from_csv(const std::string csv_file_name, 
+                  const std::string format_name,
                   const std::string req_state,
-                  const std::string req_region)
+                  const std::string req_location)
 {
   // utility function: tokenize a csv line
   auto tokenize = [] (const std::string line, const char delim = ' ') 
@@ -15,6 +16,7 @@ get_data_from_csv(const std::string csv_file_name,
     std::istringstream iss(line);
 
     while (std::getline(iss, token, delim)) tokens.push_back(token);
+
     return tokens;
   };
 
@@ -27,10 +29,7 @@ get_data_from_csv(const std::string csv_file_name,
   // utility function: convert string to digit
   auto to_digit = [&] (const std::string str)
   {
-    float digit = 0.0;
-    if (is_digit(str)) digit = std::stof(str);
-    
-    return digit;
+    return is_digit(str) ? std::stof(str) : 0.0;
   };
   
   // utility function: sum map data
@@ -47,14 +46,18 @@ get_data_from_csv(const std::string csv_file_name,
     return sum_data;
   };
 
-  const size_t num_tokens = 16; // 6
-  std::map<std::string, std::map<std::string, std::vector<float>>> tot_cases_map, tot_deaths_map;
-  std::vector<std::string> states, regions;
-  std::string line;
-
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << " Read CSV data from file: " << csv_file_name                          << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
+  // Sanity checks
+  if (format_name != "ecdc" &&
+      format_name != "PC regioni" &&
+      format_name != "PC province")
+  {
+    std::cout << "No csv format " << format_name << " known!" << std::endl;
+    return {};
+  }
 
   // Open csv file
   std::ifstream file(csv_file_name, std::ios::in);
@@ -64,74 +67,108 @@ get_data_from_csv(const std::string csv_file_name,
     return {};
   }
 
+  // Get csv header 
+  std::string header;
+  std::getline(file, header);
+  const size_t num_expected_tokens = tokenize(header, ',').size();
+
   // Parse csv file
+  std::string line;
+  std::map<std::string, std::map<std::string, std::vector<float>>> tot_cases_map, tot_deaths_map;
+  std::vector<std::string> states, locations;
+  std::string day, state, location;
+  float cases, deaths;
+
   while (std::getline(file, line))
   {
     if (line.empty()) continue;  // skip empty line
 
     // Tokenize
     const auto tokens = tokenize(line, ',');
-    if (std::none_of(tokens.begin(), tokens.end(), is_digit)) continue; // skip header
-    if (tokens.size() != num_tokens) 
+    const auto num_tokens = tokens.size();
+    if (num_tokens != num_expected_tokens) 
     {
-      std::cout << "Found " << tokens.size() << " tokens, " << num_tokens << " expected!" << std::endl;
-      continue; 
+      if (num_tokens == num_expected_tokens - 1)
+      {
+	std::cout << "Last token missing?" << std::endl;
+      }
+      else 
+      {
+	std::cout << "Found " << num_tokens << " tokens, " << num_expected_tokens << " expected!" << std::endl;
+	continue;
+      }
     }
 
     // Data format
     // ECDC
-    //std::string day    = tokens[0];
-    //std::string state  = tokens[1];
-    //std::string region = "";
-    //float new_cases    = to_digit( tokens[2] );
-    //float new_deaths   = to_digit( tokens[3] );
-    //float cases        = to_digit( tokens[4] );
-    //float deaths       = to_digit( tokens[5] );
+    if (format_name == "ecdc")
+    {
+      day              = tokens[0];
+      state            = tokens[1];
+      cases            = to_digit( tokens[4] );
+      deaths           = to_digit( tokens[5] );
+      float new_cases  = to_digit( tokens[2] );
+      float new_deaths = to_digit( tokens[3] );
+    }
 
-    // Protezione Civile
-    std::string day     = tokens[0];
-    std::string state   = tokens[1];
-    std::string region  = tokens[3];
-    float tot_act_cases = to_digit( tokens[10] );
-    float new_act_cases = to_digit( tokens[11] );
-    float deaths        = to_digit( tokens[13] );
-    float cases         = to_digit( tokens[14] );
-    float tampons       = to_digit( tokens[15] );
+    // Protezione Civile (regioni)
+    if (format_name == "PC regioni")
+    {
+      day                 = tokens[0];
+      state               = tokens[1];
+      location            = tokens[3];
+      deaths              = to_digit( tokens[13] );
+      cases               = to_digit( tokens[14] );
+      float tot_act_cases = to_digit( tokens[10] );
+      float new_act_cases = to_digit( tokens[11] );
+      float tampons       = to_digit( tokens[15] );
+    }
 
-    tot_cases_map[state][region] .push_back( cases ); 
-    tot_deaths_map[state][region].push_back( deaths );
+    // Protezione Civile (province)
+    if (format_name == "PC province")
+    {
+      day      = tokens[0];
+      state    = tokens[1];
+      location = tokens[5];
+      cases    = to_digit( tokens[9] );
+    }
+
+    tot_cases_map[state][location] .push_back( cases ); 
+    tot_deaths_map[state][location].push_back( deaths );
     
-    if (std::find(states.begin(), states.end(), state)    == states.end())  states.push_back( state );
-    if (std::find(regions.begin(), regions.end(), region) == regions.end()) regions.push_back( region );
+    if (std::find(states.begin(), states.end(), state) == states.end()) states.push_back( state );
+    if (std::find(locations.begin(), locations.end(), location) == locations.end()) locations.push_back( location );
 
     if (state == req_state && 
-	(region == req_region || req_region.empty()))
+	(location == req_location || req_location.empty()))
     {
-      std::cout << "Read day: " << day << ", state: " << state << ", region: " << region 
+      std::cout << "Read day: " << day << ", state: " << state << ", location: " << location 
 	<< ", cases: " << cases << ", deaths: " << deaths << std::endl;
     }
   }
+
+  file.close();
 
   // Fill tuple
   std::vector<float> tot_cases, tot_deaths;
 
   if (std::find(states.begin(), states.end(), req_state) != states.end()) 
   { 
-    if (req_region.empty()) // no region requested... sum data over regions
+    if (req_location.empty()) // no location requested... sum data over locations
     {
-      std::cout << "No region requested. Sum data over regions..." << std::endl; 
+      std::cout << "No location requested. Sum data over locations..." << std::endl; 
 
       tot_cases  = sum_data( tot_cases_map[req_state] );
       tot_deaths = sum_data( tot_deaths_map[req_state] );
     }
 
-    else if (std::find(regions.begin(), regions.end(), req_region) != regions.end()) 
+    else if (std::find(locations.begin(), locations.end(), req_location) != locations.end()) 
     {
-      tot_cases  = tot_cases_map[req_state][req_region];
-      tot_deaths = tot_deaths_map[req_state][req_region];
+      tot_cases  = tot_cases_map[req_state][req_location];
+      tot_deaths = tot_deaths_map[req_state][req_location];
     }   
 
-    else std::cout << "Data for region " << req_region << " not found!" << std::endl;
+    else std::cout << "Data for location " << req_location << " not found!" << std::endl;
   }
 
   else std::cout << "Data for state " << req_state << " not found!" << std::endl;
@@ -143,28 +180,30 @@ get_data_from_csv(const std::string csv_file_name,
 /********************/
 /* Corona virus fit */
 /********************/
-void corona_trend(std::string country = "Italy",
-                  std::string region = "",
-                  std::string dataset_name = "total_cases",
-		  std::string fit_model_name = "test",
-		  float fit_from_day = 0.0, 
-		  float fit_to_day = -1.0,
-		  int days_to_pred = 3,
-                  bool y_in_log = false)
+TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
+                    std::string format_name = "PC province",
+                    std::string country = "ITA",
+                    std::string location = "",
+                    std::string dataset_name = "total_cases",
+		    std::string fit_model_name = "test",
+		    float fit_from_day = 0.0, 
+		    float fit_to_day = -1.0,
+		    int days_to_pred = 3,
+                    bool y_in_log = false)
 { 
   // Sanity checks
   if (dataset_name != "total_cases" &&
       dataset_name != "total_deaths") 
   {
     std::cout << "No dataset " << dataset_name << " known!" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (fit_from_day < 0.0 || 
       (fit_to_day != -1.0 && fit_from_day >= fit_to_day)) 
   {
     std::cout << "Wrong fit range [" << fit_from_day << ", " << fit_to_day << "]!" << std::endl;
-    return;
+    return nullptr;
   }
 
   if (days_to_pred < 0)
@@ -177,7 +216,7 @@ void corona_trend(std::string country = "Italy",
       fit_model_name != "test")
   {
     std::cout << "Fit model " << fit_model_name << " not known!" << std::endl;
-    return;
+    return nullptr;
   }
 
   // Set ROOT style
@@ -186,8 +225,7 @@ void corona_trend(std::string country = "Italy",
   gStyle->SetOptFit(111);
 
   // Get data from csv 
-  const std::string csv_file_name{"full_data.csv"};
-  auto dataset = get_data_from_csv(csv_file_name, country, region); 
+  auto dataset = get_data_from_csv(csv_file_name, format_name, country, location); 
 
   // Set data
   std::string y_title;
@@ -207,14 +245,15 @@ void corona_trend(std::string country = "Italy",
   if (data.size() == 0) 
   {
     std::cout << "Data size is zero!" << std::endl;
-    return;
+    return nullptr;
   }
 
-  std::vector<float> days(data.size()); 
+  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
+  std::vector<float> days( data.size() ); 
   std::iota(days.begin(), days.end(), 0); // from day 0
 
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout <<  " " << y_title << " for " << country << ", region " << region         << std::endl;
+  std::cout <<  " " << y_title << " for: " << country << ", location: " << location   << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   for (auto day : days) std::cout << "Day = " << day << ", data = " << data[day]      << std::endl;
 
@@ -233,7 +272,7 @@ void corona_trend(std::string country = "Italy",
   // Make graph
   auto gr_data = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
   gr_data->SetName("gr_data");
-  gr_data->SetTitle( Form("Corona virus trend: %s %s;Days;%s", country.c_str(), region.c_str(), y_title.c_str()) );
+  gr_data->SetTitle( Form("Corona virus trend: %s %s;Days;%s", country.c_str(), location.c_str(), y_title.c_str()) );
   gr_data->GetXaxis()->SetTitleSize(0.045);
   gr_data->GetXaxis()->SetTitleOffset(0.8);
   gr_data->GetYaxis()->SetTitleSize(0.045);
@@ -243,7 +282,12 @@ void corona_trend(std::string country = "Italy",
   gr_data->SetMarkerColor(kRed);
   gr_data->SetLineColor(kRed);
   gr_data->SetLineWidth(4);
-  gr_data->SetMinimum(0.0);
+  if (y_in_log) 
+  { 
+    gr_data->SetMinimum(1.0); 
+    gr_data->SetMaximum(10 * data.back()); 
+  }
+  else gr_data->SetMinimum(0.0);
 
   // Draw data
   auto canv = new TCanvas("canv", "", 1000, 1000);
@@ -261,41 +305,49 @@ void corona_trend(std::string country = "Italy",
     double norm    = p[0];
     double db_rate = p[1];
     double R0 = log(2) / db_rate;
-    return norm * exp(R0 * x[0]);
+
+    return exp(norm + R0 * x[0]);
   };
 
   auto expo_fun = new TF1("expo_fun", my_expo_fun, 0., 1e3, 2); 
+  expo_fun->SetNpx(1e3);
+  expo_fun->SetLineColor(kBlue);
+  expo_fun->SetLineStyle(kDashed);
+  expo_fun->SetLineWidth(4);
   expo_fun->SetParName(0, "Norm");
   expo_fun->SetParName(1, "Doubling rate");
-  expo_fun->SetParameters(1e-1, 1.0);
+  expo_fun->SetParameters(1.0, 1.0);
 
   // 2) test 
   auto my_test_fun = [] (double *x, double *p) 
   {
-    const double avg_incub_days = 5.0; // avg incubation time
-    //const double thr = 0.9;
     double norm     = p[0];
     double db_rate  = p[1];
     double mu       = p[2];
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
-    //double mu = lock_day + 2*sigma + avg_incub_days;
 
-    //if (1./(1. + exp((x[0]-mu)/sigma)) > thr) return norm * exp(R0 * x[0]);
-    return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
+    //if (1. / (1. + exp(-mu / sigma)) < 0.98) return 0.0;
+    if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
+    return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
   auto test_fun = new TF1("test_fun", my_test_fun, 0, 1e3, 4); // test
+  test_fun->SetNpx(1e3);
+  test_fun->SetLineColor(kBlue);
+  test_fun->SetLineStyle(kDashed);
+  test_fun->SetLineWidth(4);
   test_fun->SetParName(0, "Norm");
   test_fun->SetParName(1, "Doubling rate");
   test_fun->SetParName(2, "Half-max population");
   test_fun->SetParName(3, "#sigma population");
-  test_fun->SetParLimits(0,  1e2, 1e7);
+  test_fun->SetParLimits(0,  1.0, 1e3);
   test_fun->SetParLimits(1,  1.0, 10.0);
-  test_fun->SetParLimits(2., 1.0, 1e3);
+  test_fun->SetParLimits(2., 10.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
-  test_fun->SetParameters(1e4, 1.0, 10.0, 1.0);
-  //test_fun->FixParameter(1, 2.0);
+  test_fun->SetParameters(1.0, 1.0, 10.0, 0.1);
+  //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
+  //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
   //test_fun->FixParameter(3, 5);
 
@@ -306,6 +358,7 @@ void corona_trend(std::string country = "Italy",
 
   fit_fun->SetNpx(1e3);
   fit_fun->SetLineColor(kBlue);
+  fit_fun->SetLineStyle(kSolid);
   fit_fun->SetLineWidth(4);
 
   // Fit
@@ -315,7 +368,7 @@ void corona_trend(std::string country = "Italy",
   if (fit_from_day > days.back() || fit_to_day < days.front()) 
   {
     std::cout << "No data in fit range! Cannot fit!" << std::endl; 
-    return;
+    return nullptr;
   }
   gr_data->Fit(fit_fun, "VE", "", fit_from_day, fit_to_day);
   gPad->Modified();
@@ -325,7 +378,7 @@ void corona_trend(std::string country = "Italy",
   auto st = (TPaveStats*)gr_data->GetListOfFunctions()->FindObject("stats");
   st->SetX1NDC(0.2);
   st->SetY1NDC(0.66);
-  st->SetX2NDC(0.64);
+  st->SetX2NDC(0.54);
   st->SetY2NDC(0.88);
 
   // Draw predicted data
@@ -337,13 +390,20 @@ void corona_trend(std::string country = "Italy",
     point->SetMarkerSize(2);
     point->SetMarkerColor(kOrange);
     gr_data->GetXaxis()->SetLimits(0.0, 1.2*std::max(days.back(), day));
-    gr_data->SetMaximum(1.2*fit_val);
+    if (y_in_log) gr_data->SetMaximum(10 * fit_val);
+    else gr_data->SetMaximum(1.2 * fit_val);
     point->Draw("same");
 
     if (print_text)
     {
-      auto txt_str = (fit_val < 1.e5) ? Form("Exp: %1.0f", fit_val) : Form("Exp: %1.2e", fit_val);
-      auto text = new TText(day - 2, 1.05*fit_val, txt_str);
+      auto txt_str = (fit_val < 1e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
+      float txt_x_pos = day;
+      if (fit_val < 1e3) txt_x_pos -= 1;
+      else if (fit_val < 1e4) txt_x_pos -= 3;
+      else if (fit_val < 1e5) txt_x_pos -= 4;
+      else txt_x_pos -= 5; 
+
+      auto text = new TText(txt_x_pos, fit_val, txt_str);
       text->SetTextSize(0.02);
       text->Draw("same");
     }
@@ -358,15 +418,49 @@ void corona_trend(std::string country = "Italy",
   }
 
   // Draw fit function derivative
-  auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("same");
-  gr_deriv->SetLineColor(kRed);
-  gr_deriv->SetLineStyle(kDashed);
-  gr_deriv->SetLineWidth(4);
+  if (!y_in_log)
+  {
+    auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("same");
+    gr_deriv->SetLineColor(kRed);
+    gr_deriv->SetLineStyle(kDashed);
+    gr_deriv->SetLineWidth(4);
+  }
+
+  // Draw test fun components
+  if (fit_model_name == "test")
+  {
+    expo_fun->FixParameter(0, log(test_fun->Eval(0)));
+    expo_fun->FixParameter(1, test_fun->GetParameter(1));
+    expo_fun->Draw("same");
+
+    if (!y_in_log)
+    {
+      auto my_fermi_fun = [] (double *x, double *p)
+      {
+	double norm  = p[0];
+	double mu    = p[1];
+	double sigma = p[2];
+
+	return norm / (1. + exp((x[0] - mu) / sigma));
+      };
+
+      auto fermi_fun = new TF1("fermi_fun", my_fermi_fun, 0., 1e3, 3); 
+      fermi_fun->SetNpx(1e3);
+      fermi_fun->SetLineColor(kOrange);
+      fermi_fun->SetLineStyle(kDashed);
+      fermi_fun->SetLineWidth(4);
+      fermi_fun->FixParameter(0, 20 * test_fun->Eval(0));
+      fermi_fun->FixParameter(1, test_fun->GetParameter(2));
+      fermi_fun->FixParameter(2, test_fun->GetParameter(3));
+      fermi_fun->Draw("same");
+    }
+  }
 
   // Write output file
   canv->Write();
   gr_data->Write();
-  gr_deriv->Write();
   out_file->Write();
+
+  return canv;
 };
   
