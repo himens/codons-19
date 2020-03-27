@@ -13,12 +13,22 @@
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
-void PlotRegioni(TString Regione = "Emilia Romagna") {
+void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   // vector to store cases
-  Double_t ricoverati[1000], terap_intens[1000], ospedalizzati[1000], isolamento_domiciliare[1000], totali_positivi[1000], nuovi_positivi[1000], dimessi[1000], deceduti[1000], totali[1000], tamponi[1000], perc_tamponi[1000];
+  Double_t ricoverati[1000], terap_intens[1000], ospedalizzati[1000], isolamento_domiciliare[1000], totali_positivi[1000], nuovi_positivi[1000], dimessi[1000], deceduti[1000], totali[1000], tamponi[1000], perc_tamponi[1000],incremento[1000], incremento_positivi[1000], ti_incr[1000];
   // basenumber to index the file
   Int_t  daynumber, day = 0;
   Int_t loc;
+  Int_t ti_molt = 50;
+
+  TH1F *peakpos = new TH1F("peakpos","Peak Position",60,0,60);
+  TH1F *plateau = new TH1F("plateau","Plateau",100,0,5e4);
+
+  peakpos->SetLineWidth(2);
+  peakpos->GetXaxis()->SetTitle("day of peak");
+  plateau->SetLineWidth(2);
+  plateau->GetXaxis()->SetTitle("foreseen plateau value");
+ 
   // loop on february
   for(Int_t iday = 24; iday<30; iday++) {
     TString datarow;
@@ -78,6 +88,15 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
 	    perc_tamponi[day] = totali[day]/tamponi[day];
 	  else
 	    perc_tamponi[day] = 0;
+	  if(day == 0) {
+	    incremento[day] = 0;
+	    incremento_positivi[day] = 0;
+	    ti_incr[0] = 0;
+	  }else{
+	    incremento[day] = totali[day]-totali[day-1];
+	    incremento_positivi[day] = totali_positivi[day]-totali_positivi[day-1];
+	    ti_incr[day] = (terap_intens[day] - terap_intens[day-1])*ti_molt;
+	  }
 	}
       }
     day++;
@@ -141,6 +160,9 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
 	    chopped = chopped(loc+1, loc+100);
 	    tamponi[day] = chopped.Atoi();
 	    perc_tamponi[day] = totali[day]/tamponi[day];
+	    incremento[day] = totali[day]-totali[day-1];
+	    incremento_positivi[day] = totali_positivi[day]-totali_positivi[day-1];	
+	    ti_incr[day] = (terap_intens[day] - terap_intens[day-1])*ti_molt;
 	  }
 	}
       day++;
@@ -188,6 +210,15 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
   TGraph *pperc_tamponi = new TGraph(day,giorno,perc_tamponi);
   pperc_tamponi->SetMarkerStyle(20);
   pperc_tamponi->SetTitle("percentuali tamponi positivi");
+  TGraph *pincremento = new TGraph(day,giorno,incremento);
+  pincremento->SetMarkerStyle(20);
+  pincremento->SetTitle("incremento");
+  TGraph *pincremento_positivi = new TGraph(day,giorno,incremento_positivi);
+  pincremento_positivi->SetMarkerStyle(20);
+  pincremento_positivi->SetTitle("incremento positivi");
+  TGraph *pti_incr = new TGraph(day,giorno,ti_incr);
+  pti_incr->SetMarkerStyle(20);
+  pti_incr->SetTitle(Form("incremento terapia intensiva (*%d)",ti_molt));
 
   // fit function
   auto test_fun = new TF1("test_fun", my_test_fun, 0, 1e3, 4); // test
@@ -221,6 +252,12 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
   pdeceduti->SetLineColor(6);
   pdeceduti->SetMarkerColor(6);
   pdeceduti->Draw("PLSame");
+  pincremento->SetLineColor(7);
+  pincremento->SetMarkerColor(7);
+  pincremento->Draw("PLSame");
+  pincremento_positivi->SetLineColor(8);
+  pincremento_positivi->SetMarkerColor(8);
+  pincremento_positivi->Draw("PLSame");
   canv->cd(1)->BuildLegend();
   TLatex *scritta = new TLatex(2,totali[day-1],Regione.Data());
   scritta->Draw("same");
@@ -238,6 +275,9 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
   pterap_intens->SetLineColor(4);
   pterap_intens->SetMarkerColor(4);
   pterap_intens->Draw("PLSame");
+  pti_incr->SetLineColor(6);
+  pti_incr->SetMarkerColor(6);
+  pti_incr->Draw("PLSame");
   canv->cd(2)->BuildLegend();
   // percentuali tamponi/positivi
   canv->cd(3);
@@ -255,7 +295,12 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
   canv->cd(4)->SetGridx(1);
   canv->cd(4)->SetGridy(1);
   ptotali2->GetXaxis()->SetTitle("days");
-  ptotali2->Fit(test_fun,"","",10,30);
+  for(Int_t iplot = 0; iplot<tot_plot; iplot++) {
+    ptotali2->Fit(test_fun,"","",iplot+5,day);
+    peakpos->Fill(test_fun->GetParameter(2));
+    plateau->Fill(test_fun->GetParameter(0));
+  }
+  ptotali2->Fit(test_fun,"","",0,day);
   ptotali2->Draw("ALP");
   Int_t days_to_pred = 25;
   
@@ -283,4 +328,11 @@ void PlotRegioni(TString Regione = "Emilia Romagna") {
 
   canv->Update();
 
+  TCanvas *canc = new TCanvas("canc","canc",800,1600);
+  canc->Divide(1,2);
+  canc->cd(1);
+  peakpos->Draw();
+  canc->cd(2);
+  plateau->Draw();
+  
 }

@@ -54,10 +54,10 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 	  chopped = chopped(loc+1, loc+100);
 	  loc = chopped.First(c);
 	  chopped = chopped(loc+1, loc+100);
-	  cout<<chopped.Data()<<endl;
+	  //	  cout<<chopped.Data()<<endl;
 	  casi[day] = chopped.Atoi();
-	  casix10[day] = chopped.Atoi();
-	  cout<<casi[day]<<endl;
+	  casix10[day] = chopped.Atoi()*10;
+	  //	  cout<<casi[day]<<endl;
 	}
       }
     day++;
@@ -97,10 +97,10 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 	  chopped = chopped(loc+1, loc+100);
 	  loc = chopped.First(c);
 	  chopped = chopped(loc+1, loc+100);
-	  cout<<chopped.Data()<<endl;
+	  //	  cout<<chopped.Data()<<endl;
 	  casi[day] = chopped.Atoi();
 	  casix10[day] = chopped.Atoi();
-	  cout<<casi[day]<<endl;
+	  //	  cout<<casi[day]<<endl;
        
 	  }
 	}
@@ -113,7 +113,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   Double_t giorno[1000];
   Double_t incremento[1000];
   for(Int_t iday = 0; iday<day; iday++) {
-    cout<<casi[iday]<<endl;
+    //    cout<<casi[iday]<<endl;
     if(iday == 0)
       incremento[iday] = casi[iday];
     else
@@ -172,7 +172,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   canv->cd(2)->SetGridx(1);
   canv->cd(2)->SetGridy(1);
   plotbis->GetXaxis()->SetTitle("days");
-  plotbis->Fit(test_fun,"","",0,30);
+  plotbis->Fit(test_fun,"","",0,day);
   plotbis->Draw("ALP");
   Int_t days_to_pred = 20;
   
