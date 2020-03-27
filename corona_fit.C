@@ -350,7 +350,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 10.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
-  test_fun->SetParameters(10.0, 1.0, 10.0, 5.0);
+  test_fun->SetParameters(10.0, 2.0, 10.0, 5.0);
   //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
   //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
@@ -430,15 +430,6 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     draw_fit_point(day, print_text); 
   }
 
-  // Draw fit function derivative
-  if (!y_in_log)
-  {
-    auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("same");
-    gr_deriv->SetLineColor(kRed);
-    gr_deriv->SetLineStyle(kDashed);
-    gr_deriv->SetLineWidth(4);
-  }
-
   // Draw test fun components
   if (fit_model_name == "test")
   {
@@ -459,14 +450,30 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
       auto fermi_fun = new TF1("fermi_fun", my_fermi_fun, 0., 1e3, 3); 
       fermi_fun->SetNpx(1e3);
-      fermi_fun->SetLineColor(kOrange);
+      fermi_fun->SetLineColor(kGreen + 3);
       fermi_fun->SetLineStyle(kDashed);
       fermi_fun->SetLineWidth(4);
-      fermi_fun->FixParameter(0, 20 * test_fun->Eval(0));
+      fermi_fun->FixParameter(0, 0.3 * data.back());
       fermi_fun->FixParameter(1, test_fun->GetParameter(2));
       fermi_fun->FixParameter(2, test_fun->GetParameter(3));
       fermi_fun->Draw("same");
     }
+  }
+
+  // Draw fit function derivative
+  if (!y_in_log)
+  {
+    auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("goff");
+    for (int i = 0; i < gr_deriv->GetN(); i++)
+    {
+      auto x = gr_deriv->GetX();
+      auto y = gr_deriv->GetY();
+      gr_deriv->SetPoint(i, x[i], 5 * y[i]);
+    }
+    gr_deriv->SetLineColor(kOrange);
+    gr_deriv->SetLineStyle(kDashed);
+    gr_deriv->SetLineWidth(4);
+    gr_deriv->Draw("same");
   }
 
   // Draw error bands
