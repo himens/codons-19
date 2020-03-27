@@ -16,6 +16,7 @@
 void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   // vector to store cases
   Double_t casi[1000];
+  Double_t casix10[1000];
   // basenumber to index the file
   Int_t  daynumber, day = 0;
   //  TString Provincia("PI");
@@ -32,15 +33,37 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 	if(datarow.Contains(Provincia.Data())) {
 	  // search for the last ',' and the value
 	  char c = ',';
-	  Int_t loc = datarow.Last(c);
-	  TString chopped = datarow(loc+1, loc+10);
+	  Int_t loc;
+	  // the strategy is the following, searches for the first comma, then chop the string
+	  // and go on until the right comma is found...
+	  loc = datarow.First(c);
+	  TString chopped = datarow(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  //	  cout<<chopped.Data()<<endl;
 	  casi[day] = chopped.Atoi();
+	  casix10[day] = chopped.Atoi()*10;
+	  //	  cout<<casi[day]<<endl;
 	}
       }
     day++;
     filin.close();    	  
   }
-
+  
   // loop on March
   for(Int_t iday = 1; iday<31; iday++) {
     TString datarow;
@@ -51,17 +74,39 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
     if(filin.good()) {
       while (filin >> datarow)
 	{
-	  //	std::cout << datarow << std::endl;
 	  if(datarow.Contains(Provincia.Data())) {
-	    // search for the last ',' and the value
-	    char c = ',';
-	    Int_t loc = datarow.Last(c);
-	    TString chopped = datarow(loc+1, loc+10);
-	    casi[day] = chopped.Atoi();
+	  char c = ',';
+	  Int_t loc;
+	  // the strategy is the following, searches for the first comma, then chop the string
+	  // and go on until the right comma is found...
+	  loc = datarow.First(c);
+	  TString chopped = datarow(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  //	  cout<<chopped.Data()<<endl;
+	  casi[day] = chopped.Atoi();
+	  casix10[day] = chopped.Atoi();
+	  //	  cout<<casi[day]<<endl;
+       
 	  }
 	}
-      day++;
-      filin.close();    	  
+    day++;
+    filin.close();    	  
+    
     }
   }
 
@@ -82,7 +127,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   test_fun->SetParName(1, "Doubling rate");
   test_fun->SetParName(2, "Half-max population");
   test_fun->SetParName(3, "#sigma population");
-  test_fun->SetParLimits(0,  1e2, 4e8);
+  test_fun->SetParLimits(0,  1e2, 1e6);
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 1.0, 1e3);
   //  test_fun->FixParameter(2., 210e3);
@@ -92,8 +137,8 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 
 
   // plot
-  TCanvas *canv = new TCanvas("canv");
-  canv->Divide(2,1);
+    TCanvas *canv = new TCanvas("canv","canv",800,1600);
+  canv->Divide(1,2);
   canv->cd(1);
   canv->cd(1)->SetLogy(log);
   canv->cd(1)->SetTickx(1);
@@ -104,13 +149,13 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   plot->SetMarkerStyle(20);
   plot->GetXaxis()->SetTitle("days");
   plot->GetYaxis()->SetTitle("positive");
-  plot->SetTitle("integrated increment");
+  plot->SetTitle("cumulative increment");
   plot->Draw("ALP");
-  TGraph  *plotbis = new TGraph(day,giorno,casi);
+  TGraph  *plotbis = new TGraph(day,giorno,casix10);
   plotbis->SetMarkerStyle(20);
   plotbis->GetXaxis()->SetTitle("days");
   plotbis->GetYaxis()->SetTitle("positive");
-  plotbis->SetTitle("integrated increment");
+  plotbis->SetTitle("cumulative increment");
   TGraph *ploti = new TGraph(day,giorno,incremento);
   ploti->SetTitle("daily increment");
   ploti->SetMarkerStyle(20);
@@ -126,9 +171,10 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   canv->cd(2)->SetTicky(1);
   canv->cd(2)->SetGridx(1);
   canv->cd(2)->SetGridy(1);
-  plotbis->Fit(test_fun);
+  plotbis->GetXaxis()->SetTitle("days");
+  plotbis->Fit(test_fun,"","",0,day);
   plotbis->Draw("ALP");
-  Int_t days_to_pred = 15;
+  Int_t days_to_pred = 20;
   
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
     {
@@ -143,8 +189,10 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
      
      auto txt_str = (fit_val < 1.e5) ? Form("Exp: %1.0f", fit_val) : Form("Exp: %1.2e", fit_val);
      auto text = new TText(day - 2, 1.05*fit_val, txt_str);
-     text->SetTextSize(0.02);
-     text->Draw("same");
+     if(print_text) {
+       text->SetTextSize(0.02);
+       text->Draw("same");
+     }
     };
 
   bool print_text = days_to_pred < 5 ? true : ((day == days_to_pred) ? true : false); 
