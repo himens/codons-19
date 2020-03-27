@@ -242,15 +242,15 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     y_title = "Total deaths";
   }
 
+  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
+  std::vector<float> days( data.size() ); 
+  std::iota(days.begin(), days.end(), 0); // from day 0
+
   if (data.size() == 0) 
   {
     std::cout << "Data size is zero!" << std::endl;
     return nullptr;
   }
-
-  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
-  std::vector<float> days( data.size() ); 
-  std::iota(days.begin(), days.end(), 0); // from day 0
 
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout <<  " " << y_title << " for: " << country << ", location: " << location   << std::endl;
@@ -265,6 +265,11 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   // Set fit range
   if (fit_from_day == 0.0) fit_from_day = days.front();
   if (fit_to_day == -1.0)  fit_to_day = days.back();
+  if (fit_from_day > days.back() || fit_to_day < days.front()) 
+  {
+    std::cout << "No data in fit range! Cannot fit!" << std::endl; 
+    return nullptr;
+  }
 
   // Make output file
   auto out_file = new TFile("corona_trend.root", "recreate");
@@ -328,7 +333,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     double R0 = log(2) / db_rate;
 
     //if (1. / (1. + exp(-mu / sigma)) < 0.98) return 0.0;
-    if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
+    //if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
     return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
 
@@ -345,7 +350,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 10.0, 1e3);
   test_fun->SetParLimits(3., 0.1, 50.0);
-  test_fun->SetParameters(1.0, 1.0, 10.0, 0.1);
+  test_fun->SetParameters(10.0, 1.0, 10.0, 5.0);
   //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
   //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
   //test_fun->FixParameter(2, 37.);
@@ -361,16 +366,24 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   fit_fun->SetLineStyle(kSolid);
   fit_fun->SetLineWidth(4);
 
+  // Estimate initial parameters
+  if (fit_model_name == "test")  
+  {
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    std::cout << " Estimate R0 first via an expo fit...                               " << std::endl; 
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
+    gr_data->Fit(expo_fun, "0N", "", fit_from_day, fit_from_day + 10);
+    auto R0_0 = expo_fun->GetParameter(1);
+    test_fun->SetParLimits(1,  0.7 * R0_0, 1.3 * R0_0);
+    test_fun->SetParameter(1,  R0_0);
+  }
+
   // Fit
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << " Fit with " << fit_model_name << " in range [" << fit_from_day << ", " << fit_to_day << "]" << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  if (fit_from_day > days.back() || fit_to_day < days.front()) 
-  {
-    std::cout << "No data in fit range! Cannot fit!" << std::endl; 
-    return nullptr;
-  }
-  gr_data->Fit(fit_fun, "VE", "", fit_from_day, fit_to_day);
+  gr_data->Fit(fit_fun, "EMS", "", fit_from_day, fit_to_day);
   gPad->Modified();
   gPad->Update();
 
@@ -454,6 +467,27 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
       fermi_fun->FixParameter(2, test_fun->GetParameter(3));
       fermi_fun->Draw("same");
     }
+  }
+
+  // Draw error bands
+  if (!y_in_log)
+  {
+    auto fun_low = new TF1(*fit_fun);
+    fun_low->SetLineStyle(kDotted);
+    fun_low->SetLineColor(kRed);
+
+    auto fun_up = new TF1(*fit_fun);
+    fun_up->SetLineStyle(kDotted);
+    fun_up->SetLineColor(kRed);
+
+    for (int i = 0; i < fit_fun->GetNpar(); i++)
+    {
+      fun_low->FixParameter(i, fit_fun->GetParameter(i)  + fit_fun->GetParError(i));
+      fun_up->FixParameter (i, fit_fun->GetParameter(i)  - fit_fun->GetParError(i));
+    }
+
+    fun_low->DrawF1(gr_data->GetXaxis()->GetXmin(), gr_data->GetXaxis()->GetXmax(), "same");
+    fun_up->DrawF1 (gr_data->GetXaxis()->GetXmin(), gr_data->GetXaxis()->GetXmax(), "same");
   }
 
   // Write output file
