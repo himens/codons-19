@@ -36,12 +36,22 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
     
     daynumber = 20200200 + iday;
     filin.open((Form("../COVID-19/dati-regioni/dpc-covid19-ita-regioni-%d.csv",daynumber)));
+    //    Int_t uno = 0;
     while (filin >> datarow)
+      //    while (uno<1)
       {
-	//	std::cout << datarow << std::endl;
+	//	filin>>datarow;
+	//	uno++;
+	char c = ',';
+	// fix in case of white spaces
+	while(datarow.Length()<60) {
+	  TString toappend;
+	  filin >> toappend;
+	  datarow.Append(toappend);
+	}
+	//	cout<<datarow.Data()<<endl;
 	if(datarow.Contains(Regione.Data())) {
 	  // search for the last ',' and the value
-	  char c = ',';
 	  // the strategy is the following, searches for the first comma, then chop the string
 	  // and go on until the right comma is found...
 	  loc = datarow.First(c);
@@ -114,9 +124,16 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
       while (filin >> datarow)
 	{
 	  //	std::cout << datarow << std::endl;
-	  if(datarow.Contains(Regione.Data())) {
 	    // search for the last ',' and the value
 	    char c = ',';
+	    // fix in case of white spaces
+	    while(datarow.Length()<60) {
+	      TString toappend;
+	      filin >> toappend;
+	      datarow.Append(toappend);
+	    }
+	  if(datarow.Contains(Regione.Data())) {
+	    //	cout<<datarow.Data()<<endl;
 	    // the strategy is the following, searches for the first comma, then chop the string
 	    // and go on until the right comma is found...
 	    loc = datarow.First(c);
@@ -331,8 +348,18 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   TCanvas *canc = new TCanvas("canc","canc",800,1600);
   canc->Divide(1,2);
   canc->cd(1);
-  peakpos->Draw();
+  canc->cd(1)->SetTickx(1);
+  canc->cd(1)->SetTicky(1);
+  canc->cd(1)->SetGridx(1);
+  canc->cd(1)->SetGridy(1);
+  peakpos->SetFillColor(4);
+  peakpos->Draw("BAR");
   canc->cd(2);
-  plateau->Draw();
+  canc->cd(2)->SetTickx(1);
+  canc->cd(2)->SetTicky(1);
+  canc->cd(2)->SetGridx(1);
+  canc->cd(2)->SetGridy(1);
+  plateau->SetFillColor(4);
+  plateau->Draw("BAR");
   
 }
