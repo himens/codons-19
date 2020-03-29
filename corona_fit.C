@@ -91,8 +91,8 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string region = "";
       data_map[state][region]["cases"]      .push_back( to_digit(tokens[4]) );
       data_map[state][region]["deaths"]     .push_back( to_digit(tokens[5]) );
-      data_map[state][region]["new_cases"]  .push_back( to_digit(tokens[2]) );
-      data_map[state][region]["new_deaths"] .push_back( to_digit(tokens[3]) );
+      data_map[state][region]["new cases"]  .push_back( to_digit(tokens[2]) );
+      data_map[state][region]["new deaths"] .push_back( to_digit(tokens[3]) );
     }
 
     // Protezione Civile (regioni)
@@ -103,8 +103,8 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string region = tokens[3];
       data_map[state][region]["deaths"]        .push_back( to_digit(tokens[13]) );
       data_map[state][region]["cases"]         .push_back( to_digit(tokens[14]) );
-      data_map[state][region]["actual_cases"]  .push_back( to_digit(tokens[10]) );
-      data_map[state][region]["new_act_cases"] .push_back( to_digit(tokens[11]) );
+      data_map[state][region]["actual cases"]  .push_back( to_digit(tokens[10]) );
+      data_map[state][region]["new act cases"] .push_back( to_digit(tokens[11]) );
       data_map[state][region]["tamponi"]       .push_back( to_digit(tokens[15]) );
       data_map[state][region]["ricoverati"]    .push_back( to_digit(tokens[6]) );
       data_map[state][region]["terapia"]       .push_back( to_digit(tokens[7]) );
