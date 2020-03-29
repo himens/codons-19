@@ -1,12 +1,11 @@
 /**********************/
 /* Read data from csv */
 /**********************/
-std::tuple<std::vector<float>, 
-           std::vector<float>> 
-get_data_from_csv(const std::string csv_file_name, 
-                  const std::string format_name,
-                  const std::string req_state,
-                  const std::string req_location)
+using Data_t = std::map<std::string, std::vector<float>>; 
+Data_t get_data_from_csv(const std::string csv_file_name, 
+                         const std::string format_name,
+                         const std::string req_state,
+                         const std::string req_region)
 {
   // utility function: tokenize a csv line
   auto tokenize = [] (const std::string line, const char delim = ' ') 
@@ -32,20 +31,6 @@ get_data_from_csv(const std::string csv_file_name,
     return is_digit(str) ? std::stof(str) : 0.0;
   };
   
-  // utility function: sum map data
-  auto sum_data = [] (const std::map<std::string, std::vector<float>> &map)
-  {
-    std::vector<float> sum_data;
-    for (const auto &p : map)
-    {
-      const auto &data = p.second;
-      sum_data.resize( data.size() );
-      std::transform(sum_data.begin(), sum_data.end(), data.begin(), sum_data.begin(), std::plus<float>()); // add data
-    }
-
-    return sum_data;
-  };
-
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << " Read CSV data from file: " << csv_file_name                          << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
@@ -74,10 +59,7 @@ get_data_from_csv(const std::string csv_file_name,
 
   // Parse csv file
   std::string line;
-  std::map<std::string, std::map<std::string, std::vector<float>>> tot_cases_map, tot_deaths_map;
-  std::vector<std::string> states, locations;
-  std::string day, state, location;
-  float cases, deaths;
+  std::map<std::string, std::map<std::string, Data_t>> data_map;
 
   while (std::getline(file, line))
   {
@@ -90,12 +72,12 @@ get_data_from_csv(const std::string csv_file_name,
     {
       if (num_tokens == num_expected_tokens - 1)
       {
-	std::cout << "Last token missing?" << std::endl;
+        std::cout << "Last token missing?" << std::endl;
       }
       else 
       {
-	std::cout << "Found " << num_tokens << " tokens, " << num_expected_tokens << " expected!" << std::endl;
-	continue;
+        std::cout << "Found " << num_tokens << " tokens, " << num_expected_tokens << " expected!" << std::endl;
+        continue;
       }
     }
 
@@ -103,77 +85,79 @@ get_data_from_csv(const std::string csv_file_name,
     // ECDC
     if (format_name == "ecdc")
     {
-      day              = tokens[0];
-      state            = tokens[1];
-      cases            = to_digit( tokens[4] );
-      deaths           = to_digit( tokens[5] );
-      float new_cases  = to_digit( tokens[2] );
-      float new_deaths = to_digit( tokens[3] );
+      std::string day    = tokens[0];
+      std::string state  = tokens[1];
+      std::string region = "";
+      data_map[state][region]["cases"]      .push_back( to_digit( tokens[4] ) );
+      data_map[state][region]["deaths"]     .push_back( to_digit( tokens[5] ) );
+      data_map[state][region]["new_cases"]  .push_back( to_digit( tokens[2] ) );
+      data_map[state][region]["new_deaths"] .push_back( to_digit( tokens[3] ) );
     }
 
     // Protezione Civile (regioni)
     if (format_name == "PC regioni")
     {
-      day                 = tokens[0];
-      state               = tokens[1];
-      location            = tokens[3];
-      deaths              = to_digit( tokens[13] );
-      cases               = to_digit( tokens[14] );
-      float tot_act_cases = to_digit( tokens[10] );
-      float new_act_cases = to_digit( tokens[11] );
-      float tampons       = to_digit( tokens[15] );
+      std::string day    = tokens[0];
+      std::string state  = tokens[1];
+      std::string region = tokens[3];
+      data_map[state][region]["deaths"]        .push_back( to_digit( tokens[13] ) );
+      data_map[state][region]["cases"]         .push_back( to_digit( tokens[14] ) );
+      data_map[state][region]["actual_cases"]  .push_back( to_digit( tokens[10] ) );
+      data_map[state][region]["new_act_cases"] .push_back( to_digit( tokens[11] ) );
+      data_map[state][region]["tamponi"]       .push_back( to_digit( tokens[15] ) );
+      data_map[state][region]["ricoverati"]    .push_back( to_digit( tokens[6] ) );
+      data_map[state][region]["terapia"]       .push_back( to_digit( tokens[7] ) );
+      data_map[state][region]["ospedalizzati"] .push_back( to_digit( tokens[8] ) );
+      data_map[state][region]["isolamento"]    .push_back( to_digit( tokens[9] ) );
     }
 
     // Protezione Civile (province)
     if (format_name == "PC province")
     {
-      day      = tokens[0];
-      state    = tokens[1];
-      location = tokens[5];
-      cases    = to_digit( tokens[9] );
-    }
-
-    tot_cases_map[state][location] .push_back( cases ); 
-    tot_deaths_map[state][location].push_back( deaths );
-    
-    if (std::find(states.begin(), states.end(), state) == states.end()) states.push_back( state );
-    if (std::find(locations.begin(), locations.end(), location) == locations.end()) locations.push_back( location );
-
-    if (state == req_state && 
-	(location == req_location || req_location.empty()))
-    {
-      std::cout << "Read day: " << day << ", state: " << state << ", location: " << location 
-	<< ", cases: " << cases << ", deaths: " << deaths << std::endl;
+      std::string day    = tokens[0];
+      std::string state  = tokens[1];
+      std::string region = tokens[5];
+      data_map[state][region]["cases"].push_back( to_digit( tokens[9] ) );
     }
   }
 
   file.close();
 
-  // Fill tuple
-  std::vector<float> tot_cases, tot_deaths;
+  // Fill output data
+  Data_t out_data;
 
-  if (std::find(states.begin(), states.end(), req_state) != states.end()) 
+  if (data_map.count(req_state)) 
   { 
-    if (req_location.empty()) // no location requested... sum data over locations
+    if (req_region.empty()) // no region requested... sum data over regions
     {
-      std::cout << "No location requested. Sum data over locations..." << std::endl; 
+      std::cout << "No region requested. Sum data over regions..." << std::endl; 
 
-      tot_cases  = sum_data( tot_cases_map[req_state] );
-      tot_deaths = sum_data( tot_deaths_map[req_state] );
+      for (const auto &p : data_map[req_state])
+      {
+	const auto region = p.first;
+	for (const auto &p2 : data_map[req_state][region])
+	{
+	  const auto &name = p2.first;
+	  const auto &data = data_map[req_state][region][name];
+	  auto &sum_data = out_data[name];
+
+	  sum_data.resize( data.size() );
+	  std::transform(sum_data.begin(), sum_data.end(), data.begin(), sum_data.begin(), std::plus<float>()); // add data
+	}
+      }
     }
 
-    else if (std::find(locations.begin(), locations.end(), req_location) != locations.end()) 
+    else if (data_map[req_state].count(req_region)) 
     {
-      tot_cases  = tot_cases_map[req_state][req_location];
-      tot_deaths = tot_deaths_map[req_state][req_location];
+      out_data = data_map[req_state][req_region];
     }   
 
-    else std::cout << "Data for location " << req_location << " not found!" << std::endl;
+    else std::cout << "Data for region " << req_region << " not found!" << std::endl;
   }
 
   else std::cout << "Data for state " << req_state << " not found!" << std::endl;
 
-  return std::make_tuple(tot_cases, tot_deaths);
+  return out_data;
 }
 
 
@@ -183,7 +167,7 @@ get_data_from_csv(const std::string csv_file_name,
 TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
                     std::string format_name = "PC province",
                     std::string country = "ITA",
-                    std::string location = "",
+                    std::string region = "",
                     std::string dataset_name = "total_cases",
 		    std::string fit_model_name = "test",
 		    float fit_from_day = 0.0, 
@@ -192,13 +176,6 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
                     bool y_in_log = false)
 { 
   // Sanity checks
-  if (dataset_name != "total_cases" &&
-      dataset_name != "total_deaths") 
-  {
-    std::cout << "No dataset " << dataset_name << " known!" << std::endl;
-    return nullptr;
-  }
-
   if (fit_from_day < 0.0 || 
       (fit_to_day != -1.0 && fit_from_day >= fit_to_day)) 
   {
@@ -225,24 +202,20 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   gStyle->SetOptFit(111);
 
   // Get data from csv 
-  auto dataset = get_data_from_csv(csv_file_name, format_name, country, location); 
+  auto dataset = get_data_from_csv(csv_file_name, format_name, country, region); 
+
+  if (!dataset.count(dataset_name))
+  {
+    std::cout << "No dataset " << dataset_name << " known!" << std::endl;
+    std::cout << "List of available datasets:" << std::endl;
+    for (const auto &p : dataset) std::cout << p.first << std::endl;
+    return nullptr;
+  }
 
   // Set data
-  std::string y_title;
-  std::vector<float> data; 
-
-  if (dataset_name == "total_cases") 
-  {
-    data = std::get<0>(dataset);
-    y_title = "Total cases";
-  }
-  if (dataset_name == "total_deaths") 
-  {
-    data = std::get<1>(dataset);
-    y_title = "Total deaths";
-  }
-
+  std::vector<float> &data = dataset[dataset_name]; 
   data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
+
   std::vector<float> days( data.size() ); 
   std::iota(days.begin(), days.end(), 0); // from day 0
 
@@ -253,7 +226,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   }
 
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout <<  " " << y_title << " for: " << country << ", location: " << location   << std::endl;
+  std::cout <<  " " << dataset_name << " for: " << country << ", region: " << region  << std::endl;
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
   for (auto day : days) std::cout << "Day = " << day << ", data = " << data[day]      << std::endl;
 
@@ -277,7 +250,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   // Make graph
   auto gr_data = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
   gr_data->SetName("gr_data");
-  gr_data->SetTitle( Form("Corona virus trend: %s %s;Days;%s", country.c_str(), location.c_str(), y_title.c_str()) );
+  gr_data->SetTitle( Form("Corona virus trend: %s %s;Days;%s", country.c_str(), region.c_str(), dataset_name.c_str()) );
   gr_data->GetXaxis()->SetTitleSize(0.045);
   gr_data->GetXaxis()->SetTitleOffset(0.8);
   gr_data->GetYaxis()->SetTitleSize(0.045);
@@ -453,7 +426,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
       fermi_fun->SetLineColor(kGreen + 3);
       fermi_fun->SetLineStyle(kDashed);
       fermi_fun->SetLineWidth(4);
-      fermi_fun->FixParameter(0, 0.3 * data.back());
+      fermi_fun->FixParameter(0, 0.3 * data.back()); // scale
       fermi_fun->FixParameter(1, test_fun->GetParameter(2));
       fermi_fun->FixParameter(2, test_fun->GetParameter(3));
       fermi_fun->Draw("same");
@@ -464,7 +437,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   if (!y_in_log)
   {
     auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("goff");
-    for (int i = 0; i < gr_deriv->GetN(); i++)
+    for (int i = 0; i < gr_deriv->GetN(); i++) // scale
     {
       auto x = gr_deriv->GetX();
       auto y = gr_deriv->GetY();
