@@ -170,7 +170,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
                     std::string format_name = "PC province",
                     std::string country = "ITA",
                     std::string region = "",
-                    std::string dataset_name = "total_cases",
+                    std::string dataset_name = "cases",
 		    std::string fit_model_name = "",
 		    float fit_from_day = 0.0, 
 		    float fit_to_day = -1.0,
@@ -216,7 +216,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
   // Set data
   std::vector<float> &data = dataset[dataset_name]; 
-  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/ 0 counts
+  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/o counts
 
   std::vector<float> days( data.size() ); 
   std::iota(days.begin(), days.end(), 0); // from day 0
