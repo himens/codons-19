@@ -1,6 +1,7 @@
 /**********************/
 /* Read data from csv */
 /**********************/
+// Parsed csv data are stored in map <dataset_name, data vector>
 using Data_t = std::map<std::string, std::vector<float>>; 
 Data_t get_data_from_csv(const std::string csv_file_name, 
                          const std::string format_name,
@@ -88,10 +89,10 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = "";
-      data_map[state][region]["cases"]      .push_back( to_digit( tokens[4] ) );
-      data_map[state][region]["deaths"]     .push_back( to_digit( tokens[5] ) );
-      data_map[state][region]["new_cases"]  .push_back( to_digit( tokens[2] ) );
-      data_map[state][region]["new_deaths"] .push_back( to_digit( tokens[3] ) );
+      data_map[state][region]["cases"]      .push_back( to_digit(tokens[4]) );
+      data_map[state][region]["deaths"]     .push_back( to_digit(tokens[5]) );
+      data_map[state][region]["new_cases"]  .push_back( to_digit(tokens[2]) );
+      data_map[state][region]["new_deaths"] .push_back( to_digit(tokens[3]) );
     }
 
     // Protezione Civile (regioni)
@@ -100,15 +101,17 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = tokens[3];
-      data_map[state][region]["deaths"]        .push_back( to_digit( tokens[13] ) );
-      data_map[state][region]["cases"]         .push_back( to_digit( tokens[14] ) );
-      data_map[state][region]["actual_cases"]  .push_back( to_digit( tokens[10] ) );
-      data_map[state][region]["new_act_cases"] .push_back( to_digit( tokens[11] ) );
-      data_map[state][region]["tamponi"]       .push_back( to_digit( tokens[15] ) );
-      data_map[state][region]["ricoverati"]    .push_back( to_digit( tokens[6] ) );
-      data_map[state][region]["terapia"]       .push_back( to_digit( tokens[7] ) );
-      data_map[state][region]["ospedalizzati"] .push_back( to_digit( tokens[8] ) );
-      data_map[state][region]["isolamento"]    .push_back( to_digit( tokens[9] ) );
+      data_map[state][region]["deaths"]        .push_back( to_digit(tokens[13]) );
+      data_map[state][region]["cases"]         .push_back( to_digit(tokens[14]) );
+      data_map[state][region]["actual_cases"]  .push_back( to_digit(tokens[10]) );
+      data_map[state][region]["new_act_cases"] .push_back( to_digit(tokens[11]) );
+      data_map[state][region]["tamponi"]       .push_back( to_digit(tokens[15]) );
+      data_map[state][region]["ricoverati"]    .push_back( to_digit(tokens[6]) );
+      data_map[state][region]["terapia"]       .push_back( to_digit(tokens[7]) );
+      data_map[state][region]["ospedalizzati"] .push_back( to_digit(tokens[8]) );
+      data_map[state][region]["isolamento"]    .push_back( to_digit(tokens[9]) );
+      data_map[state][region]["tamponi positivi"].push_back(
+	  to_digit(tokens[15]) ? to_digit(tokens[14]) / to_digit(tokens[15]) : 0.0 );
     }
 
     // Protezione Civile (province)
@@ -117,7 +120,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = tokens[5];
-      data_map[state][region]["cases"].push_back( to_digit( tokens[9] ) );
+      data_map[state][region]["cases"].push_back(to_digit(tokens[9]) );
     }
   }
 
@@ -134,15 +137,14 @@ Data_t get_data_from_csv(const std::string csv_file_name,
 
       for (const auto &p : data_map[req_state])
       {
-	const auto region = p.first;
-	for (const auto &p2 : data_map[req_state][region])
+	for (const auto &p2 : p.second)
 	{
-	  const auto &name = p2.first;
-	  const auto &data = data_map[req_state][region][name];
-	  auto &sum_data = out_data[name];
+	  const auto &ds = p2.first;
+	  const auto &v = p2.second;
+	  auto &out_v = out_data[ds];
 
-	  sum_data.resize( data.size() );
-	  std::transform(sum_data.begin(), sum_data.end(), data.begin(), sum_data.begin(), std::plus<float>()); // add data
+	  out_v.resize( v.size() );
+	  std::transform(out_v.begin(), out_v.end(), v.begin(), out_v.begin(), std::plus<float>());
 	}
       }
     }
@@ -169,7 +171,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
                     std::string country = "ITA",
                     std::string region = "",
                     std::string dataset_name = "total_cases",
-		    std::string fit_model_name = "test",
+		    std::string fit_model_name = "",
 		    float fit_from_day = 0.0, 
 		    float fit_to_day = -1.0,
 		    int days_to_pred = 3,
@@ -189,7 +191,8 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     days_to_pred = 0;
   }
 
-  if (fit_model_name != "expo" && 
+  if (!fit_model_name.empty() &&
+      fit_model_name != "expo" &&
       fit_model_name != "test")
   {
     std::cout << "Fit model " << fit_model_name << " not known!" << std::endl;
@@ -203,11 +206,10 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
   // Get data from csv 
   auto dataset = get_data_from_csv(csv_file_name, format_name, country, region); 
-
   if (!dataset.count(dataset_name))
   {
-    std::cout << "No dataset " << dataset_name << " known!" << std::endl;
-    std::cout << "List of available datasets:" << std::endl;
+    std::cout << dataset_name << " dataset not found!" << std::endl;
+    std::cout << "List of available datasets of format " << format_name << ":" << std::endl;
     for (const auto &p : dataset) std::cout << p.first << std::endl;
     return nullptr;
   }
@@ -225,23 +227,20 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     return nullptr;
   }
 
-  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout <<  " " << dataset_name << " for: " << country << ", region: " << region  << std::endl;
-  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  for (auto day : days) std::cout << "Day = " << day << ", data = " << data[day]      << std::endl;
-
   // Set errors
   std::vector<float> e_days(days.size(), 0.0); 
   std::vector<float> e_data(data.size(), 0.0);
-  std::transform(data.begin(), data.end(), e_data.begin(), [] (const float N) { return sqrt(N); }); 
-
-  // Set fit range
-  if (fit_from_day == 0.0) fit_from_day = days.front();
-  if (fit_to_day == -1.0)  fit_to_day = days.back();
-  if (fit_from_day > days.back() || fit_to_day < days.front()) 
+  if (!fit_model_name.empty())
   {
-    std::cout << "No data in fit range! Cannot fit!" << std::endl; 
-    return nullptr;
+    std::transform(data.begin(), data.end(), e_data.begin(), [] (float N) { return sqrt(N); });
+  }
+
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  std::cout <<  " " << dataset_name << " for: " << country << ", region: " << region  << std::endl;
+  std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+  for (auto day : days)
+  {
+    std::cout << "Day = " << day << ", data = " << data[day] << " +- " << e_data[day] << std::endl;
   }
 
   // Make output file
@@ -275,6 +274,9 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   canv->SetGridx();
   canv->SetGridy();
   gr_data->Draw("apl");
+
+  // Exit if fit model not specified
+  if (fit_model_name.empty()) return canv;
 
   // Define fit functions 
   // 1) exponential
@@ -350,6 +352,15 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     auto R0_0 = expo_fun->GetParameter(1);
     test_fun->SetParLimits(1,  0.7 * R0_0, 1.3 * R0_0);
     test_fun->SetParameter(1,  R0_0);
+  }
+
+  // Set fit range
+  if (fit_from_day == 0.0) fit_from_day = days.front();
+  if (fit_to_day == -1.0)  fit_to_day = days.back();
+  if (fit_from_day > days.back() || fit_to_day < days.front())
+  {
+    std::cout << "No data in fit range! Cannot fit!" << std::endl;
+    return nullptr;
   }
 
   // Fit
