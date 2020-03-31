@@ -101,17 +101,15 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = tokens[3];
-      data_map[state][region]["deaths"]        .push_back( to_digit(tokens[13]) );
-      data_map[state][region]["cases"]         .push_back( to_digit(tokens[14]) );
-      data_map[state][region]["actual cases"]  .push_back( to_digit(tokens[10]) );
+      data_map[state][region]["deaths"]        .push_back( to_digit(tokens[14]) );
+      data_map[state][region]["cases"]         .push_back( to_digit(tokens[15]) );
+      data_map[state][region]["positivi"]      .push_back( to_digit(tokens[10]) );
       data_map[state][region]["new act cases"] .push_back( to_digit(tokens[11]) );
-      data_map[state][region]["tamponi"]       .push_back( to_digit(tokens[15]) );
+      data_map[state][region]["tamponi"]       .push_back( to_digit(tokens[16]) );
       data_map[state][region]["ricoverati"]    .push_back( to_digit(tokens[6]) );
       data_map[state][region]["terapia"]       .push_back( to_digit(tokens[7]) );
       data_map[state][region]["ospedalizzati"] .push_back( to_digit(tokens[8]) );
       data_map[state][region]["isolamento"]    .push_back( to_digit(tokens[9]) );
-      data_map[state][region]["tamponi positivi"].push_back(
-	  to_digit(tokens[15]) ? to_digit(tokens[14]) / to_digit(tokens[15]) : 0.0 );
     }
 
     // Protezione Civile (province)
