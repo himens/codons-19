@@ -23,7 +23,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
   // utility function: tell if string is a digit
   auto is_digit = [] (const std::string str)
   {
-    return std::all_of(str.begin(), str.end(), ::isdigit);
+    return str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
   };
 
   // utility function: convert string to digit
@@ -53,13 +53,13 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     return {};
   }
 
-  // Get csv header 
-  std::string header;
-  std::getline(file, header);
-  const size_t num_expected_tokens = tokenize(header, ',').size();
+  // Get csv fields
+  std::string line;
+  std::getline(file, line); // first line
+  const auto csv_fields = tokenize(line, ',');
+  const size_t num_csv_fields = csv_fields.size();
 
   // Parse csv file
-  std::string line;
   std::map<std::string, std::map<std::string, Data_t>> data_map;
 
   while (std::getline(file, line))
@@ -69,15 +69,15 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     // Tokenize
     const auto tokens = tokenize(line, ',');
     const auto num_tokens = tokens.size();
-    if (num_tokens != num_expected_tokens) 
+    if (num_tokens != num_csv_fields) 
     {
-      if (num_tokens == num_expected_tokens - 1)
+      if (num_tokens == num_csv_fields - 1)
       {
         std::cout << "Last token missing?" << std::endl;
       }
       else 
       {
-        std::cout << "Found " << num_tokens << " tokens, " << num_expected_tokens << " expected!" << std::endl;
+        std::cout << "Found " << num_tokens << " tokens, " << num_csv_fields << " expected!" << std::endl;
         continue;
       }
     }
@@ -89,10 +89,10 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = "";
-      data_map[state][region]["cases"]      .push_back( to_digit(tokens[4]) );
-      data_map[state][region]["deaths"]     .push_back( to_digit(tokens[5]) );
-      data_map[state][region]["new cases"]  .push_back( to_digit(tokens[2]) );
-      data_map[state][region]["new deaths"] .push_back( to_digit(tokens[3]) );
+      for (size_t i = 2; i < tokens.size(); i++) 
+      {
+	 data_map[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+      }
     }
 
     // Protezione Civile (regioni)
@@ -101,15 +101,10 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = tokens[3];
-      data_map[state][region]["deaths"]        .push_back( to_digit(tokens[14]) );
-      data_map[state][region]["cases"]         .push_back( to_digit(tokens[15]) );
-      data_map[state][region]["positivi"]      .push_back( to_digit(tokens[10]) );
-      data_map[state][region]["new act cases"] .push_back( to_digit(tokens[11]) );
-      data_map[state][region]["tamponi"]       .push_back( to_digit(tokens[16]) );
-      data_map[state][region]["ricoverati"]    .push_back( to_digit(tokens[6]) );
-      data_map[state][region]["terapia"]       .push_back( to_digit(tokens[7]) );
-      data_map[state][region]["ospedalizzati"] .push_back( to_digit(tokens[8]) );
-      data_map[state][region]["isolamento"]    .push_back( to_digit(tokens[9]) );
+      for (size_t i = 4; i < tokens.size(); i++) 
+      {
+	 data_map[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+      }
     }
 
     // Protezione Civile (province)
@@ -118,7 +113,10 @@ Data_t get_data_from_csv(const std::string csv_file_name,
       std::string day    = tokens[0];
       std::string state  = tokens[1];
       std::string region = tokens[5];
-      data_map[state][region]["cases"].push_back(to_digit(tokens[9]) );
+      for (size_t i = 6; i < tokens.size(); i++) 
+      {
+	 data_map[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+      }
     }
   }
 
