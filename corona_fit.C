@@ -88,7 +88,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     {
       std::string day    = tokens[0];
       std::string state  = tokens[1];
-      std::string region = "";
+      std::string region = "N/A";
       for (size_t i = 2; i < tokens.size(); i++) 
       {
 	 data_map[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
@@ -145,7 +145,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
 
   if (out_data.size() == 0) 
   { 
-    std::cout << "Data for state " << req_state << ", region  " << req_region << " not found!" << std::endl;
+    std::cout << "Data for state " << req_state << ", region " << req_region << " not found!" << std::endl;
   }
 
   return out_data;
