@@ -56,8 +56,8 @@ Data_t get_data_from_csv(const std::string csv_file_name,
   // Get csv fields
   std::string line;
   std::getline(file, line); // first line
-  const auto csv_fields = tokenize(line, ',');
-  const size_t num_csv_fields = csv_fields.size();
+  const auto &csv_fields = tokenize(line, ',');
+  const auto num_csv_fields = csv_fields.size();
 
   // Parse csv file
   std::map<std::string, std::map<std::string, Data_t>> data_map;
@@ -67,7 +67,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     if (line.empty()) continue;  // skip empty line
 
     // Tokenize
-    const auto tokens = tokenize(line, ',');
+    const auto &tokens = tokenize(line, ',');
     const auto num_tokens = tokens.size();
     if (num_tokens != num_csv_fields) 
     {
@@ -123,37 +123,30 @@ Data_t get_data_from_csv(const std::string csv_file_name,
   file.close();
 
   // Fill output data
-  Data_t out_data;
+  Data_t &out_data = data_map[req_state][req_region];
 
-  if (data_map.count(req_state)) 
-  { 
-    if (req_region.empty()) // no region requested... sum data over regions
+  if (req_region.empty()) // no region requested... sum data over regions
+  {
+    std::cout << "No region requested. Sum data over regions..." << std::endl; 
+
+    for (const auto &p : data_map[req_state])
     {
-      std::cout << "No region requested. Sum data over regions..." << std::endl; 
-
-      for (const auto &p : data_map[req_state])
+      for (const auto &p2 : p.second)
       {
-	for (const auto &p2 : p.second)
-	{
-	  const auto &ds = p2.first;
-	  const auto &v = p2.second;
-	  auto &out_v = out_data[ds];
+	const auto &ds = p2.first;
+	const auto &v = p2.second;
+	auto &out_v = out_data[ds];
 
-	  out_v.resize( v.size() );
-	  std::transform(out_v.begin(), out_v.end(), v.begin(), out_v.begin(), std::plus<float>());
-	}
+	out_v.resize( v.size() );
+	std::transform(out_v.begin(), out_v.end(), v.begin(), out_v.begin(), std::plus<float>());
       }
     }
-
-    else if (data_map[req_state].count(req_region)) 
-    {
-      out_data = data_map[req_state][req_region];
-    }   
-
-    else std::cout << "Data for region " << req_region << " not found!" << std::endl;
   }
 
-  else std::cout << "Data for state " << req_state << " not found!" << std::endl;
+  if (out_data.size() == 0) 
+  { 
+    std::cout << "Data for state " << req_state << ", region  " << req_region << " not found!" << std::endl;
+  }
 
   return out_data;
 }
@@ -166,7 +159,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
                     std::string format_name = "PC province",
                     std::string country = "ITA",
                     std::string region = "",
-                    std::string dataset_name = "cases",
+                    std::string dataset_name = "totale_casi",
 		    std::string fit_model_name = "",
 		    float fit_from_day = 0.0, 
 		    float fit_to_day = -1.0,
