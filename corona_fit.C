@@ -406,9 +406,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   // Draw test fun components
   if (fit_model_name == "test")
   {
-    expo_fun->FixParameter(0, log(test_fun->Eval(0)));
-    expo_fun->FixParameter(1, test_fun->GetParameter(1));
-    expo_fun->Draw("same");
+    expo_fun->Draw("same"); // expo. from init. estimation
 
     if (!y_in_log)
     {
