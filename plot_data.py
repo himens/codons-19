@@ -14,12 +14,13 @@ province = {"Bergamo" : [6, -1], "Brescia" : [6, -1], "Pisa" : [6, -1], "Milano"
 
 for var in ["totale_casi"]:
     pdf_name = "corona_province_" + var + ".pdf"
+    fit_model = ""
 
     for prov, day in province.items():
         canv = corona_fit("full_data_ita_prov.csv", "PC province", 
                           "ITA", prov,
                           "totale_casi",
-                          "test", day[0], day[1], 20)
+                          fit_model, day[0], day[1], 20)
 
         if prov == province.items()[0][0]:  canv.SaveAs(pdf_name + "[")
         canv.SaveAs(pdf_name)
@@ -32,12 +33,13 @@ regioni = {"" : [0, -1], "Lombardia" : [0, -1], "Toscana" : [5, -1],
 
 for var in ["totale_casi", "deceduti", "terapia_intensiva", "totale_positivi"]:
     pdf_name = "corona_regioni_" + var + ".pdf"
+    fit_model = "test" if var == "deceduti" else ""
     
     for reg, day in regioni.items():
         canv = corona_fit("full_data_ita_reg.csv", "PC regioni", 
                           "ITA", reg,
                            var,
-                          "test", day[0], day[1], 40)
+                           fit_model, day[0], day[1], 40)
 
         if reg == regioni.items()[0][0]:  canv.SaveAs(pdf_name + "[")
         canv.SaveAs(pdf_name)
@@ -50,13 +52,14 @@ stati = {"Italy" : [0, -1], "United States" : [10, -1], "France" : [20, -1],
 
 for var in ["total_cases", "total_deaths"]:
     pdf_name = "corona_stati_" + var + ".pdf"
+    fit_model = "test" if var == "total_deaths" else ""
 
     for sta, day in stati.items():
         canv = corona_fit("full_data_ecdc.csv", "ecdc", 
                           sta, "",
                           var,
-                          "",
-                          day[0], day[1], 0, True)
+                          fit_model,
+                          day[0], day[1], 0, False)
 
         if sta == stati.items()[0][0]:  canv.SaveAs(pdf_name + "[")
         canv.SaveAs(pdf_name)

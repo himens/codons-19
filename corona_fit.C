@@ -20,16 +20,11 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     return tokens;
   };
 
-  // utility function: tell if string is a digit
-  auto is_digit = [] (const std::string str)
-  {
-    return str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
-  };
-
   // utility function: convert string to digit
   auto to_digit = [&] (const std::string str)
   {
-    return is_digit(str) ? std::stof(str) : 0.0;
+    bool is_digit = str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
+    return is_digit ? std::stof(str) : 0.0;
   };
   
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
