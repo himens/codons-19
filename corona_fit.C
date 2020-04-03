@@ -21,7 +21,7 @@ Data_t get_data_from_csv(const std::string csv_file_name,
   };
 
   // utility function: convert string to digit
-  auto to_digit = [&] (const std::string str)
+  auto to_digit = [] (const std::string str)
   {
     bool is_digit = str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
     return is_digit ? std::stof(str) : 0.0;
