@@ -20,16 +20,11 @@ Data_t get_data_from_csv(const std::string csv_file_name,
     return tokens;
   };
 
-  // utility function: tell if string is a digit
-  auto is_digit = [] (const std::string str)
-  {
-    return str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
-  };
-
   // utility function: convert string to digit
-  auto to_digit = [&] (const std::string str)
+  auto to_digit = [] (const std::string str)
   {
-    return is_digit(str) ? std::stof(str) : 0.0;
+    bool is_digit = str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
+    return is_digit ? std::stof(str) : 0.0;
   };
   
   std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
@@ -205,7 +200,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
   // Set data
   std::vector<float> &data = dataset[dataset_name]; 
-  data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/o counts
+  //data.erase( std::remove(data.begin(), data.end(), 0.0), data.end() ); // strip days w/o counts
 
   std::vector<float> days( data.size() ); 
   std::iota(days.begin(), days.end(), 0); // from day 0
@@ -313,7 +308,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   test_fun->SetParLimits(0,  1.0, 1e3);
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 10.0, 1e3);
-  test_fun->SetParLimits(3., 0.1, 50.0);
+  test_fun->SetParLimits(3., 1.0, 10.0);
   test_fun->SetParameters(10.0, 2.0, 10.0, 5.0);
   //test_fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
   //test_fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
@@ -337,10 +332,10 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     std::cout << " Estimate R0 first via an expo fit...                               " << std::endl; 
     std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
-    gr_data->Fit(expo_fun, "0N", "", fit_from_day, fit_from_day + 10);
+    gr_data->Fit(expo_fun, "0N", "", fit_from_day, fit_from_day + 15);
     auto R0_0 = expo_fun->GetParameter(1);
-    test_fun->SetParLimits(1,  0.7 * R0_0, 1.3 * R0_0);
-    test_fun->SetParameter(1,  R0_0);
+    //test_fun->SetParLimits(1,  0.7 * R0_0, 1.3 * R0_0);
+    test_fun->FixParameter(1,  R0_0);
   }
 
   // Set fit range
@@ -406,9 +401,8 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   // Draw test fun components
   if (fit_model_name == "test")
   {
-    expo_fun->FixParameter(0, log(test_fun->Eval(0)));
-    expo_fun->FixParameter(1, test_fun->GetParameter(1));
-    expo_fun->Draw("same");
+    //expo_fun->SetParameter(1, fit_fun->GetParameter(1));
+    expo_fun->Draw("same"); // expo. from init. estimation
 
     if (!y_in_log)
     {
