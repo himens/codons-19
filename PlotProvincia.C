@@ -56,7 +56,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
 	  chopped = chopped(loc+1, loc+100);
 	  //	  cout<<chopped.Data()<<endl;
 	  casi[day] = chopped.Atoi();
-	  casix10[day] = chopped.Atoi()*10;
+	  casix10[day] = chopped.Atoi();
 	  //	  cout<<casi[day]<<endl;
 	}
       }
@@ -65,11 +65,57 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   }
   
   // loop on March
-  for(Int_t iday = 1; iday<31; iday++) {
+  for(Int_t iday = 1; iday<32; iday++) {
     TString datarow;
     std::ifstream filin;
     
     daynumber = 20200300 + iday;
+    filin.open((Form("../COVID-19/dati-province/dpc-covid19-ita-province-%d.csv",daynumber)));
+    if(filin.good()) {
+      while (filin >> datarow)
+	{
+	  if(datarow.Contains(Provincia.Data())) {
+	  char c = ',';
+	  Int_t loc;
+	  // the strategy is the following, searches for the first comma, then chop the string
+	  // and go on until the right comma is found...
+	  loc = datarow.First(c);
+	  TString chopped = datarow(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  loc = chopped.First(c);
+	  chopped = chopped(loc+1, loc+100);
+	  //	  cout<<chopped.Data()<<endl;
+	  casi[day] = chopped.Atoi();
+	  casix10[day] = chopped.Atoi();
+	  //	  cout<<casi[day]<<endl;
+       
+	  }
+	}
+    day++;
+    filin.close();    	  
+    
+    }
+  }
+
+  // loop on April
+  for(Int_t iday = 1; iday<32; iday++) {
+    TString datarow;
+    std::ifstream filin;
+    
+    daynumber = 20200400 + iday;
     filin.open((Form("../COVID-19/dati-province/dpc-covid19-ita-province-%d.csv",daynumber)));
     if(filin.good()) {
       while (filin >> datarow)
@@ -127,7 +173,7 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   test_fun->SetParName(1, "Doubling rate");
   test_fun->SetParName(2, "Half-max population");
   test_fun->SetParName(3, "#sigma population");
-  test_fun->SetParLimits(0,  1e2, 1e6);
+  test_fun->SetParLimits(0,  1e2, 4.2e5);
   test_fun->SetParLimits(1,  1.0, 10.0);
   test_fun->SetParLimits(2., 1.0, 1e3);
   //  test_fun->FixParameter(2., 210e3);
@@ -172,8 +218,10 @@ void PlotProvincia(TString Provincia = "PI", Int_t log = 0) {
   canv->cd(2)->SetGridx(1);
   canv->cd(2)->SetGridy(1);
   plotbis->GetXaxis()->SetTitle("days");
-  plotbis->Fit(test_fun,"","",0,day);
+  plotbis->Fit(test_fun,"","",20,day);
   plotbis->Draw("ALP");
+  
+  
   Int_t days_to_pred = 20;
   
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 

@@ -12,14 +12,13 @@
     //if (1./(1. + exp((x[0]-mu)/sigma)) > thr) return norm * exp(R0 * x[0]);
     return norm * exp(R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
-
-void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
+Double_t PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 25) {
   // vector to store cases
   Double_t ricoverati[1000], terap_intens[1000], ospedalizzati[1000], isolamento_domiciliare[1000], totali_positivi[1000], nuovi_positivi[1000], dimessi[1000], deceduti[1000], totali[1000], tamponi[1000], perc_tamponi[1000],incremento[1000], incremento_positivi[1000], ti_incr[1000];
   // basenumber to index the file
   Int_t  daynumber, day = 0;
   Int_t loc;
-  Int_t ti_molt = 50;
+  Int_t ti_molt = 10;
 
   TH1F *peakpos = new TH1F("peakpos","Peak Position",60,0,60);
   TH1F *plateau = new TH1F("plateau","Plateau",100,0,5e4);
@@ -80,6 +79,8 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
 	  chopped = chopped(loc+1, loc+100);
 	  totali_positivi[day] = chopped.Atoi();	
 	  loc = chopped.First(c);
+	  incremento_positivi[day] = chopped.Atoi();
+	  loc = chopped.First(c);
 	  chopped = chopped(loc+1, loc+100);
 	  nuovi_positivi[day] = chopped.Atoi();
 	  loc = chopped.First(c);
@@ -114,7 +115,7 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   }
 
   // loop on March
-  for(Int_t iday = 1; iday<31; iday++) {
+  for(Int_t iday = 1; iday<32; iday++) {
     TString datarow;
     std::ifstream filin;
     
@@ -162,6 +163,9 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
 	    chopped = chopped(loc+1, loc+100);
 	    totali_positivi[day] = chopped.Atoi();
 	    loc = chopped.First(c);
+	    incremento_positivi[day] = chopped.Atoi();
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
 	    chopped = chopped(loc+1, loc+100);
 	    nuovi_positivi[day] = chopped.Atoi();
 	    loc = chopped.First(c);
@@ -178,7 +182,84 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
 	    tamponi[day] = chopped.Atoi();
 	    perc_tamponi[day] = totali[day]/tamponi[day];
 	    incremento[day] = totali[day]-totali[day-1];
-	    incremento_positivi[day] = totali_positivi[day]-totali_positivi[day-1];	
+	    incremento_positivi[day] = totali_positivi[day]-totali_positivi[day-1];
+	    ti_incr[day] = (terap_intens[day] - terap_intens[day-1])*ti_molt;
+	  }
+	}
+      day++;
+      filin.close();    	  
+    }
+  }
+
+    // loop on April
+  for(Int_t iday = 1; iday<31; iday++) {
+    TString datarow;
+    std::ifstream filin;
+    
+    daynumber = 20200400 + iday;
+    filin.open((Form("../COVID-19/dati-regioni/dpc-covid19-ita-regioni-%d.csv",daynumber)));
+    if(filin.good()) {
+      while (filin >> datarow)
+	{
+	  //	std::cout << datarow << std::endl;
+	    // search for the last ',' and the value
+	    char c = ',';
+	    // fix in case of white spaces
+	    while(datarow.Length()<60) {
+	      TString toappend;
+	      filin >> toappend;
+	      datarow.Append(toappend);
+	    }
+	  if(datarow.Contains(Regione.Data())) {
+	    //	cout<<datarow.Data()<<endl;
+	    // the strategy is the following, searches for the first comma, then chop the string
+	    // and go on until the right comma is found...
+	    loc = datarow.First(c);
+	    TString chopped = datarow(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    ricoverati[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    terap_intens[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    ospedalizzati[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    isolamento_domiciliare[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    totali_positivi[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    incremento_positivi[day] = chopped.Atoi();
+	    chopped = chopped(loc+1, loc+100);
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    nuovi_positivi[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    dimessi[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    deceduti[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    totali[day] = chopped.Atoi();
+	    loc = chopped.First(c);
+	    chopped = chopped(loc+1, loc+100);
+	    tamponi[day] = chopped.Atoi();
+	    perc_tamponi[day] = totali[day]/tamponi[day];
+	    incremento[day] = totali[day]-totali[day-1];
+	    incremento_positivi[day] = totali_positivi[day]-totali_positivi[day-1];
 	    ti_incr[day] = (terap_intens[day] - terap_intens[day-1])*ti_molt;
 	  }
 	}
@@ -193,7 +274,7 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   }
   
   TCanvas *canv = new TCanvas("canv","canv",1600,1600);
-  canv->Divide(2,2);
+  canv->Divide(2,4);
   TGraph *pricoverati = new TGraph(day,giorno,ricoverati);
   pricoverati->SetMarkerStyle(20);
   pricoverati->SetTitle("ricoverati");
@@ -287,8 +368,17 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   pospedalizzati->SetLineColor(2);
   pospedalizzati->SetMarkerColor(2);
   pospedalizzati->GetXaxis()->SetTitle("days");
-  pospedalizzati->Draw("APL");
-  pisolamento_domiciliare->Draw("LPSame");
+  pisolamento_domiciliare->GetXaxis()->SetTitle("days");
+  //  canv->cd(2)->Update();
+  if(isolamento_domiciliare[day-1]>ospedalizzati[day-1]) {
+    pisolamento_domiciliare->Draw("ALP");
+    pisolamento_domiciliare->GetYaxis()->SetRangeUser(-100,isolamento_domiciliare[day-1] * 1.1);
+    pospedalizzati->Draw("PLSame");
+  } else {
+    pospedalizzati->Draw("APL");
+    pospedalizzati->GetYaxis()->SetRangeUser(-100,ospedalizzati[day-1] * 1.1);
+    pisolamento_domiciliare->Draw("LPSame");
+  }
   pterap_intens->SetLineColor(4);
   pterap_intens->SetMarkerColor(4);
   pterap_intens->Draw("PLSame");
@@ -313,13 +403,13 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
   canv->cd(4)->SetGridy(1);
   ptotali2->GetXaxis()->SetTitle("days");
   for(Int_t iplot = 0; iplot<tot_plot; iplot++) {
-    ptotali2->Fit(test_fun,"","",iplot+5,day);
+    ptotali2->Fit(test_fun,"Q","Q",iplot+5,day);
     peakpos->Fill(test_fun->GetParameter(2));
     plateau->Fill(test_fun->GetParameter(0));
   }
-  ptotali2->Fit(test_fun,"","",0,day);
+  ptotali2->Fit(test_fun,"Q","Q",0,day);
   ptotali2->Draw("ALP");
-  Int_t days_to_pred = 25;
+  Int_t days_to_pred = 10;
   
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
     {
@@ -345,21 +435,63 @@ void PlotRegioni(TString Regione = "Toscana", Int_t tot_plot = 15) {
 
   canv->Update();
 
-  TCanvas *canc = new TCanvas("canc","canc",800,1600);
-  canc->Divide(1,2);
-  canc->cd(1);
-  canc->cd(1)->SetTickx(1);
-  canc->cd(1)->SetTicky(1);
-  canc->cd(1)->SetGridx(1);
-  canc->cd(1)->SetGridy(1);
+  //  TCanvas *canc = new TCanvas("canc","canc",800,1600);
+  //  canv->Divide(1,2);
+  canv->cd(5);
+  canv->cd(5)->SetTickx(1);
+  canv->cd(5)->SetTicky(1);
+  canv->cd(5)->SetGridx(1);
+  canv->cd(5)->SetGridy(1);
   peakpos->SetFillColor(4);
   peakpos->Draw("BAR");
-  canc->cd(2);
-  canc->cd(2)->SetTickx(1);
-  canc->cd(2)->SetTicky(1);
-  canc->cd(2)->SetGridx(1);
-  canc->cd(2)->SetGridy(1);
+  canv->cd(6);
+  canv->cd(6)->SetTickx(1);
+  canv->cd(6)->SetTicky(1);
+  canv->cd(6)->SetGridx(1);
+  canv->cd(6)->SetGridy(1);
   plateau->SetFillColor(4);
   plateau->Draw("BAR");
+
+
+  //babbo plot
+  // rapporto terapie intensive su nuovi casi
+  Double_t bindex[1000], bindexdiff[1000];
+  for(Int_t iday = 0; iday<day; iday++) {
+    if(totali[iday]!=0) 
+      bindex[iday] = terap_intens[iday]/totali[iday];
+    else
+      bindex[iday] = 0;
+    
+    if(incremento[iday] != 0)
+      bindexdiff[iday] = ti_incr[iday]/incremento[iday]/50;
+    else
+      bindexdiff[iday] = 0;
+
+  }
+    
+  TGraph *pbplot = new TGraph(day,giorno,bindex);
+  pbplot->SetMarkerStyle(20);
+  pbplot->SetTitle("rapporto gravi su totali");
   
+  TGraph *pbplotdiff = new TGraph(day,giorno,bindexdiff);
+  pbplotdiff->SetMarkerStyle(20);
+  pbplotdiff->SetTitle("rapporto gravi su totali giorno per giorno");
+
+  //  TCanvas *cbab = new TCanvas("cbab","cbab",800,1600);
+  //  cbab->Divide(1,2);
+  canv->cd(7);
+  canv->cd(7)->SetTickx(1);
+  canv->cd(7)->SetTicky(1);
+  canv->cd(7)->SetGridx(1);
+  canv->cd(7)->SetGridy(1);
+  pbplot->Draw("APL");
+  canv->cd(8);
+  canv->cd(8)->SetTickx(1);
+  canv->cd(8)->SetTicky(1);
+  canv->cd(8)->SetGridx(1);
+  canv->cd(8)->SetGridy(1);
+  pbplotdiff->Draw("APL");
+
+
+  return incremento[day-1]/totali[day-2]*100;
 }
