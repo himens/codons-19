@@ -227,9 +227,6 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     std::cout << "Day = " << day << ", data = " << data[day] << " +- " << e_data[day] << std::endl;
   }
 
-  // Make output file
-  auto out_file = new TFile("corona_trend.root", "recreate");
-  
   // Make graph
   auto gr_data = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
   gr_data->SetName("gr_data");
@@ -463,11 +460,6 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     fun_low->DrawF1(gr_data->GetXaxis()->GetXmin(), gr_data->GetXaxis()->GetXmax(), "same");
     fun_up->DrawF1 (gr_data->GetXaxis()->GetXmin(), gr_data->GetXaxis()->GetXmax(), "same");
   }
-
-  // Write output file
-  canv->Write();
-  gr_data->Write();
-  out_file->Write();
 
   return canv;
 };
