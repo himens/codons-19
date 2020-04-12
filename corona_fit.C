@@ -288,7 +288,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
     double sigma    = p[3];
     double R0 = log(2) / db_rate;
 
-    //if (1. / (1. + exp(-mu / sigma)) < 0.98) return 0.0;
+    //if (1. / (1. + exp(-mu / sigma)) < 0.8) return 0.0;
     //if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
     return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
   };
@@ -331,8 +331,8 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
     gr_data->Fit(expo_fun, "0N", "", fit_from_day, fit_from_day + 15);
     auto R0_0 = expo_fun->GetParameter(1);
-    //test_fun->SetParLimits(1,  0.7 * R0_0, 1.3 * R0_0);
-    test_fun->FixParameter(1,  R0_0);
+    test_fun->SetParLimits(1, 0.5 * R0_0, 1.5 * R0_0);
+    test_fun->SetParameter(1, R0_0);
   }
 
   // Set fit range
@@ -354,10 +354,10 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
 
   // Change stats pos.
   auto st = (TPaveStats*)gr_data->GetListOfFunctions()->FindObject("stats");
-  st->SetX1NDC(0.2);
-  st->SetY1NDC(0.66);
-  st->SetX2NDC(0.54);
-  st->SetY2NDC(0.88);
+  st->SetX1( days.front() + 2);
+  st->SetY1( 0.8 * data.back() );
+  st->SetX2( days.front() + 20 );
+  st->SetY2( 1.1 * data.back() );
 
   // Draw predicted data
   auto draw_fit_point = [&] (const float day, const bool print_text = true) 
@@ -398,7 +398,7 @@ TCanvas* corona_fit(std::string csv_file_name = "full_data_ita_prov.csv",
   // Draw test fun components
   if (fit_model_name == "test")
   {
-    //expo_fun->SetParameter(1, fit_fun->GetParameter(1));
+    expo_fun->SetParameter(1, fit_fun->GetParameter(1));
     expo_fun->Draw("same"); // expo. from init. estimation
 
     if (!y_in_log)
