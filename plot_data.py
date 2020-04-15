@@ -35,8 +35,7 @@ def plot_corona_data(name,
         for loc_set in loc_settings:
             (sta, reg, fit_range) = loc_set
 
-            data = ana.get_data(data_name, sta, reg)
-            gr = ana.get_graph(data_name, data)
+            gr = ana.get_graph(data_name, sta, reg)
             gr.SetTitle(reg if reg != "" else sta)
             
             if fit_model != None: 
