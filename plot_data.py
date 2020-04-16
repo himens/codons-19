@@ -79,8 +79,7 @@ data_settings = [("totale_casi",                None),
                  ("variazione_totale_positivi", None),
                  ("nuovi_positivi",             None)]
 
-loc_settings = [("ITA", "",               [0, 40]), 
-                ("ITA", "Lombardia",      [0, 40]), 
+loc_settings = [("ITA", "Lombardia",      [0, 40]), 
                 ("ITA", "Toscana",        [0, 45]), 
                 ("ITA", "Piemonte",       [0, 45]), 
                 ("ITA", "Veneto",         [0, 40]),
