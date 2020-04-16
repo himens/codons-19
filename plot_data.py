@@ -9,16 +9,18 @@ from ROOT import Corona
 # Batch mode
 gROOT.SetBatch(True)
 
+# Analyzer
+ana = Corona.Analyzer()
+ana.read_dataset_from_csv("full_data_ita_reg.csv", "PC regioni")
+ana.read_dataset_from_csv("full_data_ita_prov.csv", "PC province")
+ana.read_dataset_from_csv("full_data_ecdc.csv", "ecdc")
+
 # Corona data plot function
 def plot_corona_data(name,
-                     csv_settings,
                      data_settings,
                      loc_settings,
                      log_scale = False,
                      days_to_pred = 3):
-
-    (csv_file, csv_fmt) = csv_settings[0]
-    ana = Corona.Analyzer(csv_file, csv_fmt)
 
     for data_set in data_settings:
         (data_name, fit_model) = data_set
@@ -37,7 +39,7 @@ def plot_corona_data(name,
 
             gr = ana.get_graph(data_name, sta, reg)
             gr.SetTitle(reg if reg != "" else sta)
-            
+
             if fit_model != None: 
                 ana.fit(gr,
                         fit_model,
@@ -56,6 +58,8 @@ def plot_corona_data(name,
         canv.SaveAs(pdf_name + "]")
 
 # Plot province
+data_settings = [("totale_casi", None)]
+
 loc_settings = [("ITA", "Bergamo", [0, -1]), 
                 ("ITA", "Brescia", [0, -1]), 
                 ("ITA", "Pisa",    [0, -1]), 
@@ -64,30 +68,9 @@ loc_settings = [("ITA", "Bergamo", [0, -1]),
                 ("ITA", "Padova",  [0, -1]), 
                 ("ITA", "Verona",  [0, -1])]
 
-csv_settings  = [("full_data_ita_prov.csv", "PC province")]
-
-data_settings = [("totale_casi", None)]
-
-plot_corona_data("province",
-                 csv_settings,
-                 data_settings,
-                 loc_settings)
+plot_corona_data("province", data_settings, loc_settings)
 
 # Plot regioni
-loc_settings = [("ITA", "",               [7, -1]), 
-                ("ITA", "Lombardia",      [7, -1]), 
-                ("ITA", "Toscana",        [10, -1]), 
-                ("ITA", "Piemonte",       [7, -1]), 
-                ("ITA", "Veneto",         [7, -1]),
-                ("ITA", "Marche",         [7, -1]), 
-                ("ITA", "Umbria",         [10, -1]),
-                ("ITA", "Campania",       [10, -1]),
-                ("ITA", "Lazio",          [10, -1]),
-                ("ITA", "Emilia-Romagna", [7, -1]),
-                ("ITA", "Liguria",        [0, -1])]
-
-csv_settings = [("full_data_ita_reg.csv", "PC regioni")]
-
 data_settings = [("totale_casi",                None), 
                  ("deceduti",                   Corona.Functions.Type.test),
                  ("terapia_intensiva",          None), 
@@ -96,14 +79,24 @@ data_settings = [("totale_casi",                None),
                  ("variazione_totale_positivi", None),
                  ("nuovi_positivi",             None)]
 
-plot_corona_data("regioni",
-                 csv_settings,
-                 data_settings, 
-                 loc_settings,
-                 False, 
-                 30)
+loc_settings = [("ITA", "",               [0, 40]), 
+                ("ITA", "Lombardia",      [0, 40]), 
+                ("ITA", "Toscana",        [0, 45]), 
+                ("ITA", "Piemonte",       [0, 45]), 
+                ("ITA", "Veneto",         [0, 40]),
+                ("ITA", "Marche",         [0, 45]), 
+                ("ITA", "Umbria",         [0, 45]),
+                ("ITA", "Campania",       [0, 45]),
+                ("ITA", "Lazio",          [0, 45]),
+                ("ITA", "Emilia-Romagna", [0, 45]),
+                ("ITA", "Liguria",        [0, 45])]
+
+plot_corona_data("regioni", data_settings, loc_settings, False, 30)
 
 # Plot stati
+data_settings = [("total_cases",  None),
+                 ("total_deaths", None)]
+
 loc_settings = [("Italy",          "", [0, -1]),
                 ("United States",  "", [10, -1]),
                 ("France",         "", [20, -1]),
@@ -114,13 +107,5 @@ loc_settings = [("Italy",          "", [0, -1]),
                 ("South Korea",    "", [0, -1]),
                 ("Netherlands",    "", [0, -1])]
 
-csv_settings = [("full_data_ecdc.csv", "ecdc")]
-
-data_settings = [("total_cases",  None),
-                 ("total_deaths", None)]
-
-plot_corona_data("stati",
-                 csv_settings,
-                 data_settings, 
-                 loc_settings)
+plot_corona_data("stati", data_settings, loc_settings)
 
