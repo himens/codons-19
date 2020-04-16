@@ -350,6 +350,8 @@ namespace Corona
     gStyle->SetTitleFontSize(0.06);
     gStyle->SetTitleW(1);
     gStyle->SetOptFit(111);
+    gStyle->SetStatX( 0.55 );
+    gStyle->SetStatY( 0.87 );
 
     // Set data
     Data_t days(data.size()); 
@@ -429,6 +431,8 @@ namespace Corona
     gStyle->SetTitleFontSize(0.06);
     gStyle->SetTitleW(1);
     gStyle->SetOptFit(111);
+    gStyle->SetStatX( 0.55 );
+    gStyle->SetStatY( 0.87 );
 
     std::cout << "Data on histogram:" << std::endl;
     std::cout << "[";
@@ -532,15 +536,6 @@ namespace Corona
     // Fit
     std::cout << "Fit with " << fun_type << " in [" << fit_from_day << ", " << fit_to_day << "]" << std::endl;
     gr->Fit(fit_fun, "EMS", "", fit_from_day, fit_to_day);
-    gPad->Modified();
-    gPad->Update();
-
-    // Change stats pos.
-    auto st = (TPaveStats*)gr->GetListOfFunctions()->FindObject("stats");
-    st->SetX1( 2.0 );
-    st->SetY1( 0.7 * gr->GetMaximum() );
-    st->SetX2( 20.0 );
-    st->SetY2( 0.98 * gr->GetMaximum() );
 
     // Draw predicted data
     auto draw_fit_point = [&] (const float day, const bool print_text = true) 
