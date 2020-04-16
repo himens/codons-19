@@ -267,7 +267,9 @@ namespace Corona
     }
 
     std::cout << "List of datasets of " << state << ", " << region << ":" << std::endl;
-    for (const auto &p : dataset) std::cout << p.first << std::endl;
+    std::cout << "[";
+    for (const auto &p : dataset) std::cout << p.first << ", ";
+    std::cout << "]" << std::endl;
 
     return dataset;
   }
@@ -291,8 +293,11 @@ namespace Corona
       return {};
     }
 
-    std::cout << "Data of " << state << ", " << region << ", " << data_name << ":" << std::endl;
-    for (const auto &val : ds[data_name]) std::cout << val << std::endl;
+    std::cout << std::endl;
+    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
+    std::cout << "[";
+    for (const auto &val : ds[data_name]) std::cout << val << ", ";
+    std::cout << "]" << std::endl;
 
     return ds[data_name];
   }
@@ -347,7 +352,9 @@ namespace Corona
     std::iota(days.begin(), days.end(), 0); // from day 0
 
     std::cout << "Data on graph:" << std::endl;
-    for (const auto &val : data) std::cout << val << std::endl;
+    std::cout << "[";
+    for (const auto &val : data) std::cout << val << ", ";
+    std::cout << "]" << std::endl;
 
     // Make graph
     auto gr = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
@@ -419,7 +426,9 @@ namespace Corona
     gStyle->SetOptFit(111);
 
     std::cout << "Data on histogram:" << std::endl;
-    for (const auto &val : data) std::cout << val << std::endl;
+    std::cout << "[";
+    for (const auto &val : data) std::cout << val << ", ";
+    std::cout << "]" << std::endl;
 
     // Make histogram
     auto h = new TH1F(Form("h_%s", data_name.c_str()), "", num_bins, x_min, x_max);
