@@ -61,6 +61,11 @@ namespace Corona
       void read_dataset_from_csv(const std::string csv_file_name, 
 	                         const std::string format_name);
 
+      const std::map<std::string, std::map<std::string, Dataset_t>>& get_dataset()
+      {
+	return m_dataset;
+      };
+
       Dataset_t get_dataset(const std::string state, 
 	                    const std::string region = "");
 
