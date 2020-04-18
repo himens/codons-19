@@ -35,13 +35,15 @@ def plot_corona_data(name,
         m_gr.SetTitle("Corona trend;Days;" + data_name);
 
         for loc_set in loc_settings:
-            (sta, reg, fit_range) = loc_set
+            (sta, reg, color, fit_range) = loc_set
 
             data = ana.get_data(data_name, sta, reg)
             e_data = [] if fit_model == None else np.sqrt(data) 
 
             gr = ana.get_graph(data_name, data, e_data)
             gr.SetTitle(reg if reg != "" else sta)
+            gr.SetLineColor(color)
+            gr.SetMarkerColor(color)        
 
             if fit_model != None: 
                ana.fit(gr,
@@ -54,45 +56,36 @@ def plot_corona_data(name,
             else:
                m_gr.Add(gr, "PL")
                if loc_set == loc_settings[-1]: 
-                   m_gr.Draw("A plc pmc")
+                   m_gr.Draw("A")
                    canv.BuildLegend()
                    canv.SaveAs(pdf_name)
 
         canv.SaveAs(pdf_name + "]")
 
 # Plot province
-loc_settings = [("ITA", "Bergamo", [0, -1]), 
-                ("ITA", "Brescia", [0, -1]), 
-                ("ITA", "Pisa",    [0, -1]), 
-                ("ITA", "Milano",  [0, -1]), 
-                ("ITA", "Torino",  [0, -1]), 
-                ("ITA", "Padova",  [0, -1]), 
-                ("ITA", "Verona",  [0, -1])]
+loc_settings = [("ITA", "Bergamo", kRed,       [0, -1]), 
+                ("ITA", "Brescia", kBlue,      [0, -1]), 
+                ("ITA", "Pisa",    kGreen + 2, [0, -1]), 
+                ("ITA", "Milano",  kOrange,    [0, -1]), 
+                ("ITA", "Torino",  kViolet,    [0, -1]), 
+                ("ITA", "Padova",  kMagenta,   [0, -1]), 
+                ("ITA", "Verona",  kGray,      [0, -1])]
 
 data_settings = [("totale_casi", None)]
 
 plot_corona_data("province", data_settings, loc_settings)
 
 # Plot regioni
-loc_settings = [("ITA", "Lombardia",      [0, 40]), 
-                ("ITA", "Veneto",         [0, 40]),
-                ("ITA", "Emilia-Romagna", [0, 40]),
-                ("ITA", "Marche",         [0, 40]),
-                ("ITA", "Toscana",        [0, 45]), 
-                ("ITA", "Piemonte",       [0, 45]), 
-                ("ITA", "Umbria",         [0, 45]),
-                ("ITA", "Campania",       [0, 45]),
-                ("ITA", "Lazio",          [0, 45]),
-                ("ITA", "Liguria",        [0, 45])]
-
-# Add custom data
-for loc_set in loc_settings:
-    (sta, reg, fit_range) = loc_set
-
-    pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
-    tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
-    tamp_pos = pos / tamp
-    ana.add_to_dataset("tamponi_positivi", sta, reg, tamp_pos)
+loc_settings = [("ITA", "Lombardia",      kRed,        [0, 40]), 
+                ("ITA", "Veneto",         kBlue,       [0, 40]),
+                ("ITA", "Emilia-Romagna", kGreen + 2,  [0, 40]),
+                ("ITA", "Marche",         kOrange,     [0, 40]),
+                ("ITA", "Toscana",        kViolet,     [0, 45]), 
+                ("ITA", "Piemonte",       kMagenta,    [0, 45]), 
+                ("ITA", "Umbria",         kGray,       [0, 45]),
+                ("ITA", "Campania",       kCyan + 3,   [0, 45]),
+                ("ITA", "Lazio",          kBlack,      [0, 45]),
+                ("ITA", "Liguria",        kYellow + 1, [0, 45])]
 
 data_settings = [("totale_casi",                None), 
                  ("deceduti",                   Corona.Functions.Type.test),
@@ -103,11 +96,56 @@ data_settings = [("totale_casi",                None),
                  ("nuovi_positivi",             None),
                  ("tamponi_positivi",           None)]
 
+# Add custom data
+for loc_set in loc_settings:
+    (sta, reg, color, fit_range) = loc_set
+
+    pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
+    tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
+    tamp_pos = pos / tamp
+    ana.add_to_dataset("tamponi_positivi", sta, reg, tamp_pos)
+
 plot_corona_data("regioni", data_settings, loc_settings, False, 30)
 
+# Plot stati
+loc_settings = [("Italy",          "", kRed,        [0, -1]),
+                ("United States",  "", kBlue,       [10, -1]),
+                ("France",         "", kGreen + 2,  [20, -1]),
+                ("Spain",          "", kOrange,     [0, -1]), 
+                ("China",          "", kViolet,     [0, 30]),
+                ("United Kingdom", "", kMagenta,    [0, -1]),
+                ("Germany",        "", kGray,       [10, -1]),
+                ("South Korea",    "", kBlack,      [0, -1]),
+                ("Netherlands",    "", kCyan + 3,   [0, -1]),
+                ("Russia",         "", kYellow + 1, [0, -1])]
+
+data_settings = [("total_cases",  None),
+                 ("total_deaths", None)]
+
+plot_corona_data("stati", data_settings, loc_settings, True)
+
 # Summary plots per region
+loc_settings = [("ITA", "Lombardia"),      
+                ("ITA", "Veneto"),         
+                ("ITA", "Emilia-Romagna"), 
+                ("ITA", "Marche"),         
+                ("ITA", "Toscana"),        
+                ("ITA", "Piemonte"),       
+                ("ITA", "Umbria"),         
+                ("ITA", "Campania"),       
+                ("ITA", "Lazio"),          
+                ("ITA", "Liguria")]        
+
+data_settings = [("totale_casi",                kRed), 
+                 ("deceduti",                   kBlue),
+                 ("terapia_intensiva",          kGreen + 2), 
+                 ("totale_positivi",            kOrange), 
+                 ("totale_ospedalizzati",       kViolet), 
+                 ("variazione_totale_positivi", kMagenta),
+                 ("nuovi_positivi",             kGray)]
+
 for loc_set in loc_settings:
-    (sta, reg, fit_range) = loc_set
+    (sta, reg) = loc_set
 
     c = ana.get_canvas("summary_" + reg)
     pdf_name = "summary_" + reg + ".pdf"
@@ -116,31 +154,16 @@ for loc_set in loc_settings:
     m_gr.SetTitle("Summary " + reg + ";Days;Counts");
 
     for data_set in data_settings:
-        (data_name, fit_model) = data_set
-        if data_name == "tamponi_positivi": continue
+        (data_name, color) = data_set
 
         data = ana.get_data(data_name, sta, reg)
         gr = ana.get_graph(data_name, data)
+        gr.SetLineColor(color)
+        gr.SetMarkerColor(color)        
         gr.SetTitle(data_name)
         m_gr.Add(gr, "PL")
 
-    m_gr.Draw("A plc pmc")
+    m_gr.Draw("A")
     c.BuildLegend()
     c.SaveAs(pdf_name)
-
-# Plot stati
-loc_settings = [("Italy",          "", [0, -1]),
-                ("United States",  "", [10, -1]),
-                ("France",         "", [20, -1]),
-                ("Spain",          "", [0, -1]), 
-                ("China",          "", [0, 30]),
-                ("United Kingdom", "", [0, -1]),
-                ("Germany",        "", [10, -1]),
-                ("South Korea",    "", [0, -1]),
-                ("Netherlands",    "", [0, -1])]
-
-data_settings = [("total_cases",  None),
-                 ("total_deaths", None)]
-
-plot_corona_data("stati", data_settings, loc_settings)
 
