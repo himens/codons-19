@@ -110,7 +110,7 @@ for loc_set in loc_settings:
     (sta, reg, fit_range) = loc_set
 
     c = ana.get_canvas("summary_" + reg)
-    pdf_name = "summary_" + reg
+    pdf_name = "summary_" + reg + ".pdf"
 
     m_gr = TMultiGraph()
     m_gr.SetTitle("Summary " + reg + ";Days;Counts");
