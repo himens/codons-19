@@ -98,7 +98,7 @@ data_settings = [("totale_casi",                None),
 
 # Add custom data
 for loc_set in loc_settings:
-    (sta, reg, color, fit_range) = loc_set
+    (sta, reg, _, _) = loc_set
 
     pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
     tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
