@@ -105,6 +105,29 @@ data_settings = [("totale_casi",                None),
 
 plot_corona_data("regioni", data_settings, loc_settings, False, 30)
 
+# Summary plots per region
+for loc_set in loc_settings:
+    (sta, reg, fit_range) = loc_set
+
+    c = ana.get_canvas("summary_" + reg)
+
+    m_gr = TMultiGraph()
+    m_gr.SetTitle("Summary " + reg + ";Days;Counts");
+
+    for data_set in data_settings:
+        (data_name, fit_model) = data_set
+        if data_name == "tamponi_positivi": continue
+
+        data = ana.get_data(data_name, sta, reg)
+        gr = ana.get_graph(data_name, data)
+        gr.SetTitle(data_name)
+        m_gr.Add(gr, "PL")
+
+    m_gr.Draw("A plc pmc")
+    c.BuildLegend()
+    c.SaveAs("summary_" + reg)
+
+
 # Plot stati
 loc_settings = [("Italy",          "", [0, -1]),
                 ("United States",  "", [10, -1]),
