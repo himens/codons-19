@@ -37,29 +37,30 @@ def plot_corona_data(name,
         for loc_set in loc_settings:
             (sta, reg, fit_range) = loc_set
 
-            gr = ana.get_graph(data_name, sta, reg)
+            data = ana.get_data(data_name, sta, reg)
+            e_data = [] if fit_model == None else np.sqrt(data) 
+
+            gr = ana.get_graph(data_name, data, e_data)
             gr.SetTitle(reg if reg != "" else sta)
 
             if fit_model != None: 
-                ana.fit(gr,
-                        fit_model,
-                        fit_range[0], 
-                        fit_range[1], 
-                        days_to_pred)
-                canv.SaveAs(pdf_name)
+               ana.fit(gr,
+                       fit_model,
+                       fit_range[0], 
+                       fit_range[1], 
+                       days_to_pred)
+               canv.SaveAs(pdf_name)
 
             else:
-                m_gr.Add(gr, "PL")
-                if loc_set == loc_settings[-1]: 
-                    m_gr.Draw("A plc pmc")
-                    canv.BuildLegend()
-                    canv.SaveAs(pdf_name)
+               m_gr.Add(gr, "PL")
+               if loc_set == loc_settings[-1]: 
+                   m_gr.Draw("A plc pmc")
+                   canv.BuildLegend()
+                   canv.SaveAs(pdf_name)
 
         canv.SaveAs(pdf_name + "]")
 
 # Plot province
-data_settings = [("totale_casi", None)]
-
 loc_settings = [("ITA", "Bergamo", [0, -1]), 
                 ("ITA", "Brescia", [0, -1]), 
                 ("ITA", "Pisa",    [0, -1]), 
@@ -68,34 +69,43 @@ loc_settings = [("ITA", "Bergamo", [0, -1]),
                 ("ITA", "Padova",  [0, -1]), 
                 ("ITA", "Verona",  [0, -1])]
 
+data_settings = [("totale_casi", None)]
+
 plot_corona_data("province", data_settings, loc_settings)
 
 # Plot regioni
+loc_settings = [("ITA", "Lombardia",      [0, 40]), 
+                ("ITA", "Veneto",         [0, 40]),
+                ("ITA", "Emilia-Romagna", [0, 40]),
+                ("ITA", "Marche",         [0, 40]),
+                ("ITA", "Toscana",        [0, 45]), 
+                ("ITA", "Piemonte",       [0, 45]), 
+                ("ITA", "Umbria",         [0, 45]),
+                ("ITA", "Campania",       [0, 45]),
+                ("ITA", "Lazio",          [0, 45]),
+                ("ITA", "Liguria",        [0, 45])]
+
+# Add custom data
+for loc_set in loc_settings:
+    (sta, reg, fit_range) = loc_set
+
+    pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
+    tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
+    tamp_pos = pos / tamp
+    ana.add_to_dataset("tamponi_positivi", sta, reg, tamp_pos)
+
 data_settings = [("totale_casi",                None), 
                  ("deceduti",                   Corona.Functions.Type.test),
                  ("terapia_intensiva",          None), 
                  ("totale_positivi",            None), 
                  ("totale_ospedalizzati",       None), 
                  ("variazione_totale_positivi", None),
-                 ("nuovi_positivi",             None)]
-
-loc_settings = [("ITA", "Lombardia",      [0, 40]), 
-                ("ITA", "Toscana",        [0, 45]), 
-                ("ITA", "Piemonte",       [0, 45]), 
-                ("ITA", "Veneto",         [0, 40]),
-                ("ITA", "Marche",         [0, 45]), 
-                ("ITA", "Umbria",         [0, 45]),
-                ("ITA", "Campania",       [0, 45]),
-                ("ITA", "Lazio",          [0, 45]),
-                ("ITA", "Emilia-Romagna", [0, 45]),
-                ("ITA", "Liguria",        [0, 45])]
+                 ("nuovi_positivi",             None),
+                 ("tamponi_positivi",           None)]
 
 plot_corona_data("regioni", data_settings, loc_settings, False, 30)
 
 # Plot stati
-data_settings = [("total_cases",  None),
-                 ("total_deaths", None)]
-
 loc_settings = [("Italy",          "", [0, -1]),
                 ("United States",  "", [10, -1]),
                 ("France",         "", [20, -1]),
@@ -105,6 +115,9 @@ loc_settings = [("Italy",          "", [0, -1]),
                 ("Germany",        "", [10, -1]),
                 ("South Korea",    "", [0, -1]),
                 ("Netherlands",    "", [0, -1])]
+
+data_settings = [("total_cases",  None),
+                 ("total_deaths", None)]
 
 plot_corona_data("stati", data_settings, loc_settings)
 

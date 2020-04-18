@@ -1,7 +1,27 @@
 namespace Corona
 {
-  using Data_t = std::vector<float>; 
-  using Dataset_t = std::map<std::string, Data_t>; 
+  using Data_t = std::vector<float>;
+  using Dataset_t = std::map<std::string, Data_t>;
+
+  std::ostream& operator<<(std::ostream& os, const Data_t &data)
+  {
+    os << "[";
+    for (auto it = data.begin(); it != data.end() -1; it++) os << *it << ", ";
+    os << data.back() << "]";
+    return os;
+  } 
+
+  std::ostream& operator<<(std::ostream& os, const Dataset_t &dataset)
+  {
+    os << "{";
+    for (auto it = dataset.begin(); it != dataset.end() ; it++) 
+    {
+      os << "\n  " << it->first << " : \n";
+      os << "  " << it->second << "\n";
+    }
+    os << "}\n";
+    return os;
+  }
 
   /***********************/
   /* Functions namespace */
@@ -73,15 +93,16 @@ namespace Corona
 	              const std::string state, 
 	              const std::string region = "");
 
+      void add_to_dataset(const std::string data_name,
+	                  const std::string state, 
+	                  const std::string region,
+			  const Data_t &data);
+
       TCanvas* get_canvas(const std::string name);
 
       TGraphErrors* get_graph(const std::string data_name,
 	                      const Data_t &data, 
-                              Data_t e_data = {});
-
-      TGraphErrors* get_graph(const std::string data_name,
-			      const std::string state, 
-	                      const std::string region = "");
+                              const Data_t &e_data = {});
 
       TH1F* get_histo(const std::string data_name,
                       const Data_t &data,
@@ -96,15 +117,6 @@ namespace Corona
 	       int days_to_pred = 3,
 	       bool draw_extra_info = true);
  
-      void fit(const std::string data_name,
-               const std::string state,       	       
-               const std::string region,
-               Functions::Type type = Functions::Type::test,
-               float fit_from_day = 0.0, 
-	       float fit_to_day = -1.0,
-	       int days_to_pred = 3,
-	       bool draw_extra_info = true);
-     
     private:
       std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{};
   };
@@ -271,10 +283,8 @@ namespace Corona
       dataset = m_dataset[state][region];
     }
 
-    std::cout << "List of datasets of " << state << ", " << region << ":" << std::endl;
-    std::cout << "[";
-    for (const auto &p : dataset) std::cout << p.first << ", ";
-    std::cout << "]" << std::endl;
+    std::cout << "Datasets of " << state << ", " << region << ":" << std::endl;
+    std::cout << dataset << std::endl;
 
     return dataset;
   }
@@ -298,13 +308,32 @@ namespace Corona
       return {};
     }
 
-    std::cout << std::endl;
     std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
-    std::cout << "[";
-    for (const auto &val : ds[data_name]) std::cout << val << ", ";
-    std::cout << "]" << std::endl;
+    std::cout << ds[data_name] << std::endl;
 
     return ds[data_name];
+  }
+
+  /*****************************/
+  /* Add new data into dataset */
+  /*****************************/
+  void Analyzer::add_to_dataset(const std::string data_name,
+                                const std::string state, 
+                                const std::string region, 
+		                const Data_t &data)
+  {
+    std::cout << std::endl;
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    std::cout << " Add data " << data_name << ", "  << state << ", " << region          << std::endl; 
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
+    for (const auto &val : data)
+    {
+      m_dataset[state][region][data_name].push_back(val);
+    }
+
+    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
+    std::cout << data << std::endl;
   }
 
   /**********************/
@@ -326,7 +355,7 @@ namespace Corona
   /******************/
   TGraphErrors* Analyzer::get_graph(const std::string data_name,
                                     const Data_t &data, 
-                                    Data_t e_data)
+                                    const Data_t &e_data)
   { 
     std::cout << std::endl;
     std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
@@ -359,9 +388,7 @@ namespace Corona
     std::iota(days.begin(), days.end(), 0); // from day 0
 
     std::cout << "Data on graph:" << std::endl;
-    std::cout << "[";
-    for (const auto &val : data) std::cout << val << ", ";
-    std::cout << "]" << std::endl;
+    std::cout << data << std::endl;
 
     // Make graph
     auto gr = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
@@ -388,17 +415,6 @@ namespace Corona
 
     return gr;
   };
-
-  TGraphErrors* Analyzer::get_graph(const std::string data_name,
-                                    const std::string state, 
-                                    const std::string region)
-  {
-    auto data = get_data(data_name, state, region);
-    Data_t e_data(data.size());
-    std::transform(data.begin(), data.end(), e_data.begin(), [] (float N) { return sqrt(N); }); 
-
-    return get_graph(data_name, data, e_data);
-  }
 
   /*****************/
   /* Get histogram */
@@ -435,9 +451,7 @@ namespace Corona
     gStyle->SetStatY( 0.87 );
 
     std::cout << "Data on histogram:" << std::endl;
-    std::cout << "[";
-    for (const auto &val : data) std::cout << val << ", ";
-    std::cout << "]" << std::endl;
+    std::cout << data << std::endl;
 
     // Make histogram
     auto h = new TH1F(Form("h_%s", data_name.c_str()), "", num_bins, x_min, x_max);
@@ -619,19 +633,6 @@ namespace Corona
       fun_low->DrawF1(gr->GetXaxis()->GetXmin(), gr->GetXaxis()->GetXmax(), "same");
       fun_up->DrawF1 (gr->GetXaxis()->GetXmin(), gr->GetXaxis()->GetXmax(), "same");
     }
-  }
-
-  void Analyzer::fit(const std::string data_name,
-                     const std::string state,
-                     const std::string region,
-                     Functions::Type fun_type,
-                     float fit_from_day, 
-                     float fit_to_day,
-                     int days_to_pred,
-                     bool draw_extra_info)
-  {
-    auto gr = get_graph(data_name, state, region);
-    fit(gr, fun_type, fit_from_day, fit_to_day, days_to_pred, draw_extra_info);
   }
 
   /********************/
