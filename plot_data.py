@@ -110,6 +110,7 @@ for loc_set in loc_settings:
     (sta, reg, fit_range) = loc_set
 
     c = ana.get_canvas("summary_" + reg)
+    pdf_name = "summary_" + reg
 
     m_gr = TMultiGraph()
     m_gr.SetTitle("Summary " + reg + ";Days;Counts");
@@ -125,8 +126,7 @@ for loc_set in loc_settings:
 
     m_gr.Draw("A plc pmc")
     c.BuildLegend()
-    c.SaveAs("summary_" + reg)
-
+    c.SaveAs(pdf_name)
 
 # Plot stati
 loc_settings = [("Italy",          "", [0, -1]),
