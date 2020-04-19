@@ -94,6 +94,7 @@ data_settings = [("totale_casi",                None),
                  ("totale_ospedalizzati",       None), 
                  ("variazione_totale_positivi", None),
                  ("nuovi_positivi",             None),
+                 ("isolamento_domiciliare",     None),
                  ("tamponi_positivi",           None)]
 
 # Add custom data
@@ -142,6 +143,7 @@ data_settings = [("totale_casi",                kRed),
                  ("totale_positivi",            kOrange), 
                  ("totale_ospedalizzati",       kViolet), 
                  ("variazione_totale_positivi", kMagenta),
+                 ("isolamento_domiciliare",     kCyan),
                  ("nuovi_positivi",             kGray)]
 
 for loc_set in loc_settings:
