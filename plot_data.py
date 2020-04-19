@@ -46,6 +46,8 @@ def plot_corona_data(name,
             gr.SetMarkerColor(color)        
 
             if fit_model != None: 
+               gr.SetLineColor(kRed)
+               gr.SetMarkerColor(kRed)        
                ana.fit(gr,
                        fit_model,
                        fit_range[0], 
