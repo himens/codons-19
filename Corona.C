@@ -16,7 +16,7 @@ namespace Corona
     os << "{";
     for (auto it = dataset.begin(); it != dataset.end() ; it++) 
     {
-      os << "\n  " << it->first << " : \n";
+      os << "\n  " << it->first << ": \n";
       os << "  " << it->second << "\n";
     }
     os << "}\n";

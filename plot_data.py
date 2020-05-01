@@ -78,26 +78,27 @@ data_settings = [("totale_casi", None)]
 plot_corona_data("province", data_settings, loc_settings)
 
 # Plot regioni
-loc_settings = [("ITA", "Lombardia",      kRed,        [0, 40]), 
-                ("ITA", "Veneto",         kBlue,       [0, 40]),
-                ("ITA", "Emilia-Romagna", kGreen + 2,  [0, 40]),
-                ("ITA", "Marche",         kOrange,     [0, 40]),
-                ("ITA", "Toscana",        kViolet,     [0, 45]), 
-                ("ITA", "Piemonte",       kMagenta,    [0, 45]), 
-                ("ITA", "Umbria",         kGray,       [0, 45]),
-                ("ITA", "Campania",       kCyan + 3,   [0, 45]),
-                ("ITA", "Lazio",          kBlack,      [0, 45]),
-                ("ITA", "Liguria",        kYellow + 1, [0, 45])]
+loc_settings = [("ITA", "Lombardia",      kRed,        [0, -1]), 
+                ("ITA", "Veneto",         kBlue,       [0, -1]),
+                ("ITA", "Emilia-Romagna", kGreen + 2,  [0, -1]),
+                ("ITA", "Marche",         kOrange,     [0, -1]),
+                ("ITA", "Toscana",        kViolet,     [0, -1]), 
+                ("ITA", "Piemonte",       kMagenta,    [0, -1]), 
+                ("ITA", "Umbria",         kGray,       [0, -1]),
+                ("ITA", "Campania",       kCyan + 3,   [0, -1]),
+                ("ITA", "Lazio",          kBlack,      [0, -1]),
+                ("ITA", "Liguria",        kYellow + 1, [0, -1])]
 
 data_settings = [("totale_casi",                None), 
-                 ("deceduti",                   Corona.Functions.Type.test),
+                 ("deceduti",                   None),
                  ("terapia_intensiva",          None), 
                  ("totale_positivi",            None), 
                  ("totale_ospedalizzati",       None), 
                  ("variazione_totale_positivi", None),
                  ("nuovi_positivi",             None),
                  ("isolamento_domiciliare",     None),
-                 ("tamponi_positivi",           None)]
+                 ("tamponi_positivi",           None),
+                 ("tamponi",                    None)]
 
 # Add custom data
 for loc_set in loc_settings:
@@ -120,7 +121,8 @@ loc_settings = [("Italy",          "", kRed,        [0, -1]),
                 ("Germany",        "", kGray,       [10, -1]),
                 ("South Korea",    "", kBlack,      [0, -1]),
                 ("Netherlands",    "", kCyan + 3,   [0, -1]),
-                ("Russia",         "", kYellow + 1, [0, -1])]
+                ("Russia",         "", kYellow + 1, [0, -1]),
+                ("Japan",          "", kBlue - 2,   [0, -1])]
 
 data_settings = [("total_cases",  None),
                  ("total_deaths", None)]
