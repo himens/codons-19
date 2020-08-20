@@ -75,7 +75,8 @@ loc_settings = [("ITA", "Lombardia",      kRed       ),
                 ("ITA", "Umbria",         kGray      ),
                 ("ITA", "Campania",       kCyan + 3  ),
                 ("ITA", "Lazio",          kBlack     ),
-                ("ITA", "Liguria",        kYellow + 1)]
+                ("ITA", "Liguria",        kYellow + 1),
+                ("ITA", "Sardegna",       kBlue +   2)]
 
 data_settings = [("totale_casi"               ), 
                  ("deceduti"                  ),
@@ -97,7 +98,7 @@ for loc_set in loc_settings:
     tamp_pos = pos / tamp
     ana.add_to_dataset("tamponi_positivi", sta, reg, tamp_pos)
 
-plot_corona_data("regioni", data_settings, loc_settings, False)
+plot_corona_data("regioni", data_settings, loc_settings, True)
 
 # Plot stati
 loc_settings = [("Italy",          "", kRed       ),
@@ -105,13 +106,14 @@ loc_settings = [("Italy",          "", kRed       ),
                 ("France",         "", kGreen + 2 ),
                 ("Spain",          "", kOrange    ), 
                 ("China",          "", kViolet    ),
-                ("United Kingdom", "", kMagenta   ),
+                    ("United Kingdom", "", kMagenta   ),
                 ("Germany",        "", kGray      ),
                 ("South Korea",    "", kBlack     ),
                 ("Netherlands",    "", kCyan + 3  ),
                 ("Russia",         "", kYellow + 1),
                 ("Japan",          "", kBlue - 2  ),
-                ("Brazil",         "", kRed - 2  )]
+                ("Brazil",         "", kRed - 2  ),
+                ("India",          "", kYellow - 2  )]
 
 data_settings = [("total_cases"),
                  ("total_deaths")]
@@ -128,7 +130,8 @@ loc_settings = [("ITA", "Lombardia"),
                 ("ITA", "Umbria"),         
                 ("ITA", "Campania"),       
                 ("ITA", "Lazio"),          
-                ("ITA", "Liguria")]        
+                ("ITA", "Liguria"),        
+                ("ITA", "Sardegna")]        
 
 data_settings = [("totale_casi",                kRed), 
                  ("deceduti",                   kBlue),
@@ -143,6 +146,7 @@ for loc_set in loc_settings:
     (sta, reg) = loc_set
 
     c = ana.get_canvas("summary_" + reg)
+    c.SetLogy(True);
     pdf_name = "summary_" + reg + ".pdf"
 
     m_gr = TMultiGraph()
@@ -158,6 +162,7 @@ for loc_set in loc_settings:
         gr.SetTitle(data_name)
         m_gr.Add(gr, "PL")
 
+    m_gr.SetMinimum(1)
     m_gr.Draw("A")
     c.BuildLegend()
     c.SaveAs(pdf_name)
