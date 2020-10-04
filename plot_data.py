@@ -32,6 +32,7 @@ def plot_corona_data(name,
 
         m_gr = TMultiGraph()
         m_gr.SetTitle("Corona trend;Days;" + data_name);
+        if log_scale: m_gr.SetMinimum(1);
 
         for loc_set in loc_settings:
             (sta, reg, color) = loc_set
@@ -96,7 +97,7 @@ for loc_set in loc_settings:
     pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
     tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
     tamp_pos = pos / tamp
-    ana.add_to_dataset("tamponi_positivi", sta, reg, tamp_pos)
+    ana.add_to_dataset(sta, reg, "tamponi_positivi", tamp_pos)
 
 plot_corona_data("regioni", data_settings, loc_settings, True)
 
@@ -106,14 +107,14 @@ loc_settings = [("Italy",          "", kRed       ),
                 ("France",         "", kGreen + 2 ),
                 ("Spain",          "", kOrange    ), 
                 ("China",          "", kViolet    ),
-                    ("United Kingdom", "", kMagenta   ),
+                ("United Kingdom", "", kMagenta   ),
                 ("Germany",        "", kGray      ),
                 ("South Korea",    "", kBlack     ),
                 ("Netherlands",    "", kCyan + 3  ),
                 ("Russia",         "", kYellow + 1),
                 ("Japan",          "", kBlue - 2  ),
-                ("Brazil",         "", kRed - 2  ),
-                ("India",          "", kYellow - 2  )]
+                ("Brazil",         "", kRed - 2   ),
+                ("India",          "", kYellow - 2)]
 
 data_settings = [("total_cases"),
                  ("total_deaths")]
@@ -166,4 +167,25 @@ for loc_set in loc_settings:
     m_gr.Draw("A")
     c.BuildLegend()
     c.SaveAs(pdf_name)
+
+
+# Cumulative plot (sum over ITA regions)    
+ana = Corona.Analyzer()
+ana.read_dataset_from_csv("full_data_ita_reg.csv", "PC regioni")
+c = ana.get_canvas("summary_ITA")
+
+data = ana.get_data("totale_casi", "ITA")
+gr = ana.get_graph("totale_casi", data)
+gr.Draw("APL")
+c.SaveAs("totale_casi_ITA.pdf")
+
+data = ana.get_data("terapia_intensiva", "ITA")
+gr = ana.get_graph("terapia_intensiva", data)
+gr.Draw("APL")
+c.SaveAs("terapia_intensiva_ITA.pdf")
+
+data = ana.get_data("totale_ospedalizzati", "ITA")
+gr = ana.get_graph("totale_ospedalizzati", data)
+gr.Draw("APL")
+c.SaveAs("totale_ospedalizzati_ITA.pdf")
 

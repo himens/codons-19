@@ -1,7 +1,7 @@
 namespace Corona
 {
   using Data_t = std::vector<float>;
-  using Dataset_t = std::map<std::string, Data_t>;
+  using Dataset_t = std::map<std::string, std::map<std::string, float>>;
 
   std::ostream& operator<<(std::ostream& os, const Data_t &data)
   {
@@ -14,14 +14,17 @@ namespace Corona
   std::ostream& operator<<(std::ostream& os, const Dataset_t &dataset)
   {
     os << "{";
-    for (auto it = dataset.begin(); it != dataset.end() ; it++) 
+    for (const auto &p : dataset) 
     {
-      os << "\n  " << it->first << ": \n";
-      os << "  " << it->second << "\n";
+      os << "\n  " << p.first << ": \n";
+
+      for (const auto &p2 : p.second)
+	  os << "  " << p2.first << ": " << p2.second << "\n";
     }
     os << "}\n";
     return os;
   }
+
 
   /***********************/
   /* Functions namespace */
@@ -30,7 +33,6 @@ namespace Corona
   {
     enum class Type
     {
-      null,
       expo,
       test, 
       fermi
@@ -39,7 +41,6 @@ namespace Corona
     std::ostream& operator<<(std::ostream& os, const Type t)
     {
       std::string str;
-      if (t == Type::null) str = "null";
       if (t == Type::expo) str = "expo";
       if (t == Type::test) str = "test";
       if (t == Type::fermi) str = "fermi";
@@ -47,14 +48,93 @@ namespace Corona
       return os;
     }
 
-    TF1* null() { return nullptr; }
-    TF1* expo (const std::string name = "");
-    TF1* test (const std::string name = "");
-    TF1* fermi(const std::string name = "");
+    /* Exponential function */
+    TF1* expo(const std::string name = "")
+    {
+      auto expo_fun = [] (double *x, double *p)
+      {
+	double norm    = p[0];
+	double db_rate = p[1];
+	double R0 = log(2) / db_rate;
+
+	return exp(norm + R0 * x[0]);
+      };
+
+      auto fun = new TF1(Form("expo_%s", name.c_str()), expo_fun, 0., 1e3, 2); 
+      fun->SetNpx(1e3);
+      fun->SetLineColor(kBlue);
+      fun->SetLineStyle(kDashed);
+      fun->SetLineWidth(4);
+      fun->SetParName(0, "Norm");
+      fun->SetParName(1, "Doubling rate");
+      fun->SetParameters(1.0, 1.0);
+
+      return fun;
+    }
+
+    /* Test function */
+    TF1* test(const std::string name = "")
+    {
+      auto test_fun = [] (double *x, double *p) 
+      {
+	double norm     = p[0];
+	double db_rate  = p[1];
+	double mu       = p[2];
+	double sigma    = p[3];
+	double R0 = log(2) / db_rate;
+
+	//if (1. / (1. + exp(-mu / sigma)) < 0.8) return 0.0;
+	//if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
+	return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
+      };
+
+      auto fun = new TF1(Form("test_%s", name.c_str()), test_fun, 0, 1e3, 4); // test
+      fun->SetNpx(1e3);
+      fun->SetLineColor(kBlue);
+      fun->SetLineStyle(kDashed);
+      fun->SetLineWidth(4);
+      fun->SetParName(0, "Norm");
+      fun->SetParName(1, "Doubling rate");
+      fun->SetParName(2, "Half-max population");
+      fun->SetParName(3, "#sigma population");
+      fun->SetParLimits(0,  1.0, 1e3);
+      fun->SetParLimits(1,  1.0, 10.0);
+      fun->SetParLimits(2., 10.0, 1e3);
+      fun->SetParLimits(3., 1.0, 10.0);
+      fun->SetParameters(10.0, 2.0, 10.0, 5.0);
+      //fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
+      //fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
+      //fun->FixParameter(2, 37.);
+      //fun->FixParameter(3, 5);
+
+      return fun;
+    }
+
+    /* Fermi function */
+    TF1* fermi(const std::string name = "")
+    {
+      auto fermi_fun = [] (double *x, double *p)
+      {
+	double norm  = p[0];
+	double mu    = p[1];
+	double sigma = p[2];
+
+	return norm / (1. + exp((x[0] - mu) / sigma));
+      };
+
+      auto fun = new TF1(Form("fermi_%s", name.c_str()), fermi_fun, 0., 1e3, 3); 
+      fun->SetNpx(1e3);
+      fun->SetLineColor(kGreen + 3);
+      fun->SetLineStyle(kDashed);
+      fun->SetLineWidth(4);
+
+      return fun;
+    }
+
+    /* Wrapper function */ 
     TF1* fun(const Type t, const std::string name = "") 
     {
-      if      (t == Type::null)  return null();
-      else if (t == Type::fermi) return fermi(name);
+           if (t == Type::fermi) return fermi(name);
       else if (t == Type::expo)  return expo(name);
       else if (t == Type::test)  return test(name);
       else 
@@ -63,7 +143,8 @@ namespace Corona
 	return nullptr;
       }
     }
-  };
+  }; // Functions namespace
+
 
   /************************************/
   /* Corona virus data analyzer class */
@@ -93,9 +174,9 @@ namespace Corona
 	              const std::string state, 
 	              const std::string region = "");
 
-      void add_to_dataset(const std::string data_name,
-	                  const std::string state, 
-	                  const std::string region,
+      void add_to_dataset(const std::string state, 
+			  const std::string region,
+	                  const std::string data_name,
 			  const Data_t &data);
 
       TCanvas* get_canvas(const std::string name);
@@ -203,7 +284,7 @@ namespace Corona
 	std::string region = "N/A";
 	for (size_t i = 2; i < tokens.size(); i++) 
 	{
-	  m_dataset[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
 
@@ -215,7 +296,7 @@ namespace Corona
 	std::string region = tokens[3];
 	for (size_t i = 4; i < tokens.size(); i++) 
 	{
-	  m_dataset[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
 
@@ -227,7 +308,7 @@ namespace Corona
 	std::string region = tokens[5];
 	for (size_t i = 6; i < tokens.size(); i++) 
 	{
-	  m_dataset[state][region][csv_fields[i]].push_back( to_digit(tokens[i]) );
+	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
     }
@@ -263,12 +344,10 @@ namespace Corona
       {
 	for (const auto &p2 : p.second)
 	{
-	  const auto &ds = p2.first;
-	  const auto &v = p2.second;
-	  auto &out_v = dataset[ds];
-
-	  out_v.resize( v.size() );
-	  std::transform(out_v.begin(), out_v.end(), v.begin(), out_v.begin(), std::plus<float>());
+	  for (const auto &p3 : p2.second)
+	  {
+	    dataset[p2.first][p3.first] += p3.second;
+	  }
 	}
       }
     }
@@ -308,18 +387,21 @@ namespace Corona
       return {};
     }
 
-    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
-    std::cout << ds[data_name] << std::endl;
+    Data_t data;
+    for (const auto &p : ds[data_name]) data.push_back(p.second); 
 
-    return ds[data_name];
+    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
+    std::cout << data << std::endl;
+
+    return data;
   }
 
   /*****************************/
   /* Add new data into dataset */
   /*****************************/
-  void Analyzer::add_to_dataset(const std::string data_name,
-                                const std::string state, 
-                                const std::string region, 
+  void Analyzer::add_to_dataset(const std::string state, 
+				const std::string region, 
+                                const std::string data_name,
 		                const Data_t &data)
   {
     std::cout << std::endl;
@@ -327,9 +409,12 @@ namespace Corona
     std::cout << " Add data " << data_name << ", "  << state << ", " << region          << std::endl; 
     std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 
-    for (const auto &val : data)
+    int i = 0;
+    for (const auto &p : m_dataset[state][region].begin()->second)
     {
-      m_dataset[state][region][data_name].push_back(val);
+      if (i > data.size()) break;
+      m_dataset[state][region][data_name][p.first] = data[i];
+      i++;
     }
 
     std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
@@ -634,91 +719,4 @@ namespace Corona
       fun_up->DrawF1 (gr->GetXaxis()->GetXmin(), gr->GetXaxis()->GetXmax(), "same");
     }
   }
-
-  /********************/
-  /* Define functions */
-  /********************/
-  /* Exponential function */
-  TF1* Functions::expo(const std::string name)
-  {
-    auto expo_fun = [] (double *x, double *p)
-    {
-      double norm    = p[0];
-      double db_rate = p[1];
-      double R0 = log(2) / db_rate;
-
-      return exp(norm + R0 * x[0]);
-    };
-
-    auto fun = new TF1(Form("expo_%s", name.c_str()), expo_fun, 0., 1e3, 2); 
-    fun->SetNpx(1e3);
-    fun->SetLineColor(kBlue);
-    fun->SetLineStyle(kDashed);
-    fun->SetLineWidth(4);
-    fun->SetParName(0, "Norm");
-    fun->SetParName(1, "Doubling rate");
-    fun->SetParameters(1.0, 1.0);
-
-    return fun;
-  }
-
-  /* Test function */
-  TF1* Functions::test(const std::string name)
-  {
-    auto test_fun = [] (double *x, double *p) 
-    {
-      double norm     = p[0];
-      double db_rate  = p[1];
-      double mu       = p[2];
-      double sigma    = p[3];
-      double R0 = log(2) / db_rate;
-
-      //if (1. / (1. + exp(-mu / sigma)) < 0.8) return 0.0;
-      //if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
-      return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
-    };
-
-    auto fun = new TF1(Form("test_%s", name.c_str()), test_fun, 0, 1e3, 4); // test
-    fun->SetNpx(1e3);
-    fun->SetLineColor(kBlue);
-    fun->SetLineStyle(kDashed);
-    fun->SetLineWidth(4);
-    fun->SetParName(0, "Norm");
-    fun->SetParName(1, "Doubling rate");
-    fun->SetParName(2, "Half-max population");
-    fun->SetParName(3, "#sigma population");
-    fun->SetParLimits(0,  1.0, 1e3);
-    fun->SetParLimits(1,  1.0, 10.0);
-    fun->SetParLimits(2., 10.0, 1e3);
-    fun->SetParLimits(3., 1.0, 10.0);
-    fun->SetParameters(10.0, 2.0, 10.0, 5.0);
-    //fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
-    //fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
-    //fun->FixParameter(2, 37.);
-    //fun->FixParameter(3, 5);
-
-    return fun;
-  }
-
-  /* Fermi function */
-  TF1* Functions::fermi(const std::string name)
-  {
-    auto fermi_fun = [] (double *x, double *p)
-    {
-      double norm  = p[0];
-      double mu    = p[1];
-      double sigma = p[2];
-
-      return norm / (1. + exp((x[0] - mu) / sigma));
-    };
-
-    auto fun = new TF1(Form("fermi_%s", name.c_str()), fermi_fun, 0., 1e3, 3); 
-    fun->SetNpx(1e3);
-    fun->SetLineColor(kGreen + 3);
-    fun->SetLineStyle(kDashed);
-    fun->SetLineWidth(4);
-
-    return fun;
-  }
-
 } // namespace Corona
