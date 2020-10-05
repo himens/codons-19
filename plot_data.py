@@ -189,3 +189,7 @@ gr = ana.get_graph("totale_ospedalizzati", data)
 gr.Draw("APL")
 c.SaveAs("totale_ospedalizzati_ITA.pdf")
 
+data = ana.get_data("deceduti", "ITA")
+gr = ana.get_graph("deceduti", data)
+gr.Draw("APL")
+c.SaveAs("totale_deceduti_ITA.pdf")
