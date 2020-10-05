@@ -263,18 +263,6 @@ namespace Corona
       // Tokenize
       const auto &tokens = tokenize(line, ',');
       const auto num_tokens = tokens.size();
-      if (num_tokens != num_csv_fields) 
-      {
-	if (num_tokens == num_csv_fields - 1)
-	{
-	  std::cout << "Last token missing?" << std::endl;
-	}
-	else 
-	{
-	  std::cout << "Found " << num_tokens << " tokens, " << num_csv_fields << " expected!" << std::endl;
-	  continue;
-	}
-      }
 
       // Data format
       // ECDC
@@ -283,7 +271,7 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = "N/A";
-	for (size_t i = 2; i < tokens.size(); i++) 
+	for (size_t i = 2; i < csv_fields.size(); i++) 
 	{
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
@@ -295,8 +283,9 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = tokens[3];
-	for (size_t i = 4; i < tokens.size(); i++) 
+	for (size_t i = 4; i < csv_fields.size(); i++) 
 	{
+	  if (csv_fields[i] == "note") continue;
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
@@ -307,8 +296,9 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = tokens[5];
-	for (size_t i = 6; i < tokens.size(); i++) 
+	for (size_t i = 6; i < csv_fields.size(); i++) 
 	{
+	  if (csv_fields[i] == "note") continue;
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
@@ -424,8 +414,11 @@ namespace Corona
       i++;
     }
 
-    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
-    std::cout << data << std::endl;
+    if (m_debug)
+    {
+      std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
+      std::cout << data << std::endl;
+    }
   }
 
   /**********************/
