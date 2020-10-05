@@ -199,7 +199,8 @@ namespace Corona
 	       bool draw_extra_info = true);
  
     private:
-      std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{};
+      bool m_debug = false; // debug flag
+      std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{}; // datset
   };
 
   /**********************/
@@ -362,8 +363,11 @@ namespace Corona
       dataset = m_dataset[state][region];
     }
 
-    std::cout << "Datasets of " << state << ", " << region << ":" << std::endl;
-    std::cout << dataset << std::endl;
+    if (m_debug) 
+    {
+      std::cout << "Datasets of " << state << ", " << region << ":" << std::endl;
+      std::cout << dataset << std::endl;
+    }
 
     return dataset;
   }
@@ -390,8 +394,11 @@ namespace Corona
     Data_t data;
     for (const auto &p : ds[data_name]) data.push_back(p.second); 
 
-    std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
-    std::cout << data << std::endl;
+    if (m_debug)
+    {
+      std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
+      std::cout << data << std::endl;
+    }
 
     return data;
   }
@@ -472,8 +479,11 @@ namespace Corona
     Data_t e_days(days.size(), 0.0); 
     std::iota(days.begin(), days.end(), 0); // from day 0
 
-    std::cout << "Data on graph:" << std::endl;
-    std::cout << data << std::endl;
+    if (m_debug)
+    {
+      std::cout << "Data on graph:" << std::endl;
+      std::cout << data << std::endl;
+    }
 
     // Make graph
     auto gr = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
@@ -535,8 +545,11 @@ namespace Corona
     gStyle->SetStatX( 0.55 );
     gStyle->SetStatY( 0.87 );
 
-    std::cout << "Data on histogram:" << std::endl;
-    std::cout << data << std::endl;
+    if (m_debug)
+    {
+      std::cout << "Data on histogram:" << std::endl;
+      std::cout << data << std::endl;
+    }
 
     // Make histogram
     auto h = new TH1F(Form("h_%s", data_name.c_str()), "", num_bins, x_min, x_max);
