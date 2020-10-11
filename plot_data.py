@@ -15,7 +15,7 @@ def plot_corona_data(name,
                      loc_settings,
                      log_scale = False):
 
-    canv = ana.get_canvas("canvas")
+    canv = ana.get_canvas("canvas_" + name)
     pdf_name = name + ".pdf"
     canv.SaveAs(pdf_name + "[")
 
