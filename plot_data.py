@@ -84,7 +84,8 @@ data_settings = [("totale_casi"               ),
                  ("totale_positivi"           ), 
                  ("totale_ospedalizzati"      ), 
                  ("isolamento_domiciliare"    ),
-                 ("tamponi"                   )]
+                 ("tamponi"                   ),
+                 ("ricoverati_con_sintomi"    )]
 
 for loc_set in loc_settings: # add custom data
     (sta, reg, _) = loc_set
@@ -100,7 +101,8 @@ plot_corona_data("regioni_ita", data_settings, loc_settings, False)
 loc_settings = [("ITA", "", kRed)]
 data_settings = [("deceduti"            ),
                  ("terapia_intensiva"   ), 
-                 ("totale_ospedalizzati")]
+                 ("totale_ospedalizzati"),
+                 ("ricoverati_con_sintomi")]
 
 plot_corona_data("totale_ita", data_settings, loc_settings, False)
 
@@ -123,7 +125,8 @@ loc_settings = [("ITA", "Lombardia"),
 
 data_settings = [("deceduti",                   kBlue),
                  ("terapia_intensiva",          kGreen + 2), 
-                 ("totale_ospedalizzati",       kViolet)]
+                 ("totale_ospedalizzati",       kViolet),
+                 ("ricoverati_con_sintomi",     kRed)]
 
 c_sum = ana.get_canvas("summary_regioni")
 pdf_name = "summary_regioni_ita.pdf"
