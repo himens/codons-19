@@ -156,8 +156,18 @@ namespace Corona
       Analyzer(const std::string csv_file_name,
   	       const std::string format_name)
       {
+	std::cout << std::endl;
+	std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+	std::cout << " Corona analyzer created!"                                            << std::endl;
+	std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 	read_dataset_from_csv(csv_file_name, format_name);
       }
+
+      void set_debug(const bool flag) { m_debug = flag; };
+
+      void print_data(const std::string data_name,
+         	      const std::string state, 
+		      const std::string region); 
 
       void read_dataset_from_csv(const std::string csv_file_name, 
 	                         const std::string format_name);
@@ -174,9 +184,9 @@ namespace Corona
 	              const std::string state, 
 	              const std::string region = "");
 
-      void add_to_dataset(const std::string state, 
+      void add_to_dataset(const std::string data_name,
+                          const std::string state, 
 			  const std::string region,
-	                  const std::string data_name,
 			  const Data_t &data);
 
       TCanvas* get_canvas(const std::string name);
@@ -313,11 +323,6 @@ namespace Corona
   Dataset_t Analyzer::get_dataset(const std::string state, 
                                   const std::string region)
   {
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Get dataset of " << state << ", " << region                          << std::endl; 
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
     // Get dataset
     Dataset_t dataset;
 
@@ -329,8 +334,6 @@ namespace Corona
 
     if (region.empty()) // no region requested... sum data over regions
     {
-      std::cout << "No region requested. Sum data over regions..." << std::endl; 
-
       for (const auto &p : m_dataset[state])
       {
 	for (const auto &p2 : p.second)
@@ -355,6 +358,9 @@ namespace Corona
 
     if (m_debug) 
     {
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+      std::cout << " Get dataset of " << state << ", " << region                          << std::endl; 
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
       std::cout << "Datasets of " << state << ", " << region << ":" << std::endl;
       std::cout << dataset << std::endl;
     }
@@ -369,11 +375,6 @@ namespace Corona
                             const std::string state, 
                             const std::string region)
   {
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Get data " << data_name << " of "  << state << ", " << region        << std::endl; 
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
     auto ds = get_dataset(state, region);
     if (!ds.count(data_name))
     {
@@ -386,6 +387,9 @@ namespace Corona
 
     if (m_debug)
     {
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+      std::cout << " Get data " << data_name << " of "  << state << ", " << region        << std::endl; 
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
       std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
       std::cout << data << std::endl;
     }
@@ -396,16 +400,11 @@ namespace Corona
   /*****************************/
   /* Add new data into dataset */
   /*****************************/
-  void Analyzer::add_to_dataset(const std::string state, 
+  void Analyzer::add_to_dataset(const std::string data_name,
+                                const std::string state, 
 				const std::string region, 
-                                const std::string data_name,
 		                const Data_t &data)
   {
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Add data " << data_name << ", "  << state << ", " << region          << std::endl; 
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
     int i = 0;
     for (const auto &p : m_dataset[state][region].begin()->second)
     {
@@ -416,6 +415,9 @@ namespace Corona
 
     if (m_debug)
     {
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+      std::cout << " Add data " << data_name << ", "  << state << ", " << region          << std::endl; 
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
       std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
       std::cout << data << std::endl;
     }
@@ -435,6 +437,24 @@ namespace Corona
     return c;
   }
 
+  /**************/
+  /* Print data */
+  /**************/
+  void Analyzer::print_data(const std::string data_name,
+         	            const std::string state, 
+		            const std::string region) 
+  { 
+    std::cout << std::endl;
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    std::cout << " Print " << data_name << " of " << state << ", " << region            << std::endl;
+    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+
+    auto data = get_data(data_name, state, region);
+    std::cout << "Data size is: " << data.size() << std::endl;
+    std::cout << "Data content:" << std::endl;
+    std::cout << data << std::endl; 
+  };
+
   /******************/
   /* Get data graph */
   /******************/
@@ -442,11 +462,6 @@ namespace Corona
                                     const Data_t &data, 
                                     const Data_t &e_data)
   { 
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Get graph: " << data_name                                            << std::endl; 
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
     // Sanity check
     if (data.size() == 0)
     {
@@ -474,6 +489,9 @@ namespace Corona
 
     if (m_debug)
     {
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+      std::cout << " Get graph: " << data_name                                            << std::endl; 
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
       std::cout << "Data on graph:" << std::endl;
       std::cout << data << std::endl;
     }
@@ -513,11 +531,6 @@ namespace Corona
 			    const float x_min,  
 			    const float x_max)  
   {
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Get histogram: " << data_name                                        << std::endl; 
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
     // Sanity checks
     if (data.size() == 0)
     {
@@ -540,6 +553,9 @@ namespace Corona
 
     if (m_debug)
     {
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+      std::cout << " Get histogram: " << data_name                                        << std::endl; 
+      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
       std::cout << "Data on histogram:" << std::endl;
       std::cout << data << std::endl;
     }
