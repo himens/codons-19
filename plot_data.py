@@ -1,5 +1,4 @@
 import sys
-import numpy as np
 from ROOT import *
 
 # Import Corona module
@@ -15,14 +14,14 @@ def plot_corona_data(name,
                      loc_settings,
                      log_scale = False):
 
-    canv = ana.get_canvas("canvas_" + name)
+    canv = ana.make_canvas("canvas_" + name)
     pdf_name = name + ".pdf"
     canv.SaveAs(pdf_name + "[")
 
     for data_set in data_settings:
         (data_name) = data_set
  
-        c = ana.get_canvas(name + "_" + data_name);
+        c = ana.make_canvas(name + "_" + data_name);
         c.SetLogy(log_scale);
 
         m_gr = TMultiGraph()
@@ -33,9 +32,8 @@ def plot_corona_data(name,
             (sta, reg, color) = loc_set
 
             data = ana.get_data(data_name, sta, reg)
-            e_data = []  
 
-            gr = ana.get_graph(data_name, data, e_data)
+            gr = data.make_graph(data_name)
             gr.SetTitle(reg if reg != "" else sta)
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
@@ -89,11 +87,25 @@ data_settings = [("totale_casi"               ),
 
 for loc_set in loc_settings: # add custom data
     (sta, reg, _) = loc_set
-    pos  = np.array( ana.get_data("totale_positivi", sta, reg) )
-    tamp = np.array( ana.get_data("tamponi", sta, reg) ) + 0.1
-    tamp_pos = pos / tamp
-    ana.add_to_dataset(sta, reg, "tamponi_positivi", tamp_pos)
-data_settings += [("tamponi_positivi")]
+
+    pos  = ana.get_data("totale_positivi", sta, reg)
+    tamp = ana.get_data("tamponi", sta, reg) 
+    ter =  ana.get_data("terapia_intensiva", sta, reg) 
+    osp =  ana.get_data("totale_ospedalizzati", sta, reg) 
+    dec =  ana.get_data("deceduti", sta, reg) 
+    ric =  ana.get_data("ricoverati_con_sintomi", sta, reg) 
+
+    ana.add_data(100 * (pos / tamp), "tamponi_positivi (%)", sta, reg)
+    ana.add_data(100 * (ter.derive() / pos.derive()), "variaz_terapie / variaz_positivi (%)", sta, reg)
+    ana.add_data(100 * (ter.derive() / osp.derive()), "variaz_terapie / variaz_ospedalizzati (%)", sta, reg)
+
+    if reg == "Veneto":
+         ter.show()
+         ter.derive().show()
+
+data_settings += [("tamponi_positivi (%)")]
+data_settings += [("variaz_terapie / variaz_positivi (%)")]
+data_settings += [("variaz_terapie / variaz_ospedalizzati (%)")]
 
 plot_corona_data("regioni_ita", data_settings, loc_settings, False)
 
@@ -102,7 +114,9 @@ loc_settings = [("ITA", "", kRed)]
 data_settings = [("deceduti"            ),
                  ("terapia_intensiva"   ), 
                  ("totale_ospedalizzati"),
-                 ("ricoverati_con_sintomi")]
+                 ("ricoverati_con_sintomi"),
+                 ("variaz_terapie / variaz_positivi (%)"),
+                 ("variaz_terapie / variaz_ospedalizzati (%)")]
 
 plot_corona_data("totale_ita", data_settings, loc_settings, False)
 
@@ -117,25 +131,25 @@ loc_settings = [("ITA", "Lombardia"),
                 ("ITA", "Campania"),      
                 ("ITA", "Lazio"),          
                 ("ITA", "Liguria"),        
-                ("ITA", "Sardegna"),        
-                ("ITA", "Sicilia"),       
-                ("ITA", "Puglia"),        
-                ("ITA", "Calabria"),        
-                ("ITA", "Basilicata")]        
+                ("ITA", "Sardegna")]
+#               ("ITA", "Sicilia"),       
+#                ("ITA", "Puglia"),        
+#                ("ITA", "Calabria"),        
+#                ("ITA", "Basilicata")]        
 
-data_settings = [("deceduti",                   kBlue),
-                 ("terapia_intensiva",          kGreen + 2), 
-                 ("totale_ospedalizzati",       kViolet),
-                 ("ricoverati_con_sintomi",     kRed)]
+data_settings = [("deceduti",                                   kBlue),
+                 ("terapia_intensiva",                          kGreen + 2), 
+                 ("totale_ospedalizzati",                       kViolet),
+                 ("ricoverati_con_sintomi",                     kRed)]
 
-c_sum = ana.get_canvas("summary_regioni")
+c_sum = ana.make_canvas("summary_regioni")
 pdf_name = "summary_regioni_ita.pdf"
 c_sum.SaveAs(pdf_name + "[")
 
 for loc_set in loc_settings:
     (sta, reg) = loc_set
 
-    c = ana.get_canvas("summary_" + reg)
+    c = ana.make_canvas("summary_" + reg)
     c.SetLogy(False);
 
     m_gr = TMultiGraph()
@@ -145,7 +159,7 @@ for loc_set in loc_settings:
         (data_name, color) = data_set
 
         data = ana.get_data(data_name, sta, reg)
-        gr = ana.get_graph(data_name, data)
+        gr = data.make_graph(data_name)
         gr.SetLineColor(color)
         gr.SetMarkerColor(color)        
         gr.SetTitle(data_name)
@@ -178,5 +192,5 @@ loc_settings = [("Italy",          "", kRed       ),
 data_settings = [("total_cases"),
                  ("total_deaths")]
 
-plot_corona_data("stati", data_settings, loc_settings, True)
+plot_corona_data("stati", data_settings, loc_settings, False)
 

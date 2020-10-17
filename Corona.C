@@ -1,15 +1,9 @@
+#include "Data_t.h"
+
 namespace Corona
 {
-  using Data_t = std::vector<float>;
+  // Dataset_t definition 
   using Dataset_t = std::map<std::string, std::map<std::string, float>>;
-
-  std::ostream& operator<<(std::ostream& os, const Data_t &data)
-  {
-    os << "[";
-    for (auto it = data.begin(); it != data.end() -1; it++) os << *it << ", ";
-    os << data.back() << "]";
-    return os;
-  } 
 
   std::ostream& operator<<(std::ostream& os, const Dataset_t &dataset)
   {
@@ -24,7 +18,6 @@ namespace Corona
     os << "}\n";
     return os;
   }
-
 
   /***********************/
   /* Functions namespace */
@@ -152,6 +145,7 @@ namespace Corona
   class Analyzer
   {
     public:
+      /* Constructors */
       Analyzer() {};
       Analyzer(const std::string csv_file_name,
   	       const std::string format_name)
@@ -163,44 +157,35 @@ namespace Corona
 	read_dataset_from_csv(csv_file_name, format_name);
       }
 
+      /* Set debug flag */ 
       void set_debug(const bool flag) { m_debug = flag; };
 
-      void print_data(const std::string data_name,
-         	      const std::string state, 
-		      const std::string region); 
-
+      /* Read data from csv */
       void read_dataset_from_csv(const std::string csv_file_name, 
 	                         const std::string format_name);
 
-      const std::map<std::string, std::map<std::string, Dataset_t>>& get_dataset()
-      {
-	return m_dataset;
-      };
+      /* Return full dataset */
+      const std::map<std::string, std::map<std::string, Dataset_t>>& get_dataset() { return m_dataset; };
 
+      /* Get dataset of (state, region) */
       Dataset_t get_dataset(const std::string state, 
 	                    const std::string region = "");
 
+      /* Get data of (state, region) */
       Data_t get_data(const std::string data_name,
 	              const std::string state, 
 	              const std::string region = "");
 
-      void add_to_dataset(const std::string data_name,
-                          const std::string state, 
-			  const std::string region,
-			  const Data_t &data);
+      /* Add new data into dataset */
+      void add_data(const Data_t &data,
+           	    const std::string data_name,
+                    const std::string state, 
+		    const std::string region);
 
-      TCanvas* get_canvas(const std::string name);
+      /* Make default canvas */
+      TCanvas* make_canvas(const std::string name);
 
-      TGraphErrors* get_graph(const std::string data_name,
-	                      const Data_t &data, 
-                              const Data_t &e_data = {});
-
-      TH1F* get_histo(const std::string data_name,
-                      const Data_t &data,
-		      const int num_bins,
-		      const float x_min,  
-	              const float x_max);
-
+      /* Fit graph */
       void fit(TGraphErrors *gr,
 	       Functions::Type type = Functions::Type::test,
 	       float fit_from_day = 0.0, 
@@ -210,7 +195,7 @@ namespace Corona
  
     private:
       bool m_debug = false; // debug flag
-      std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{}; // datset
+      std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{}; // dataset
   };
 
   /**********************/
@@ -400,10 +385,10 @@ namespace Corona
   /*****************************/
   /* Add new data into dataset */
   /*****************************/
-  void Analyzer::add_to_dataset(const std::string data_name,
-                                const std::string state, 
-				const std::string region, 
-		                const Data_t &data)
+  void Analyzer::add_data(const Data_t &data,
+                          const std::string data_name,
+                          const std::string state, 
+			  const std::string region)
   {
     int i = 0;
     for (const auto &p : m_dataset[state][region].begin()->second)
@@ -423,10 +408,10 @@ namespace Corona
     }
   }
 
-  /**********************/
-  /* Get default canvas */
-  /**********************/
-  TCanvas* Analyzer::get_canvas(const std::string name)
+  /***********************/
+  /* Make default canvas */
+  /***********************/
+  TCanvas* Analyzer::make_canvas(const std::string name)
   {
     auto c = new TCanvas(Form("canv_%s", name.c_str()), "", 1000, 1000);
     c->GetPad(0)->SetLeftMargin(0.16);
@@ -435,148 +420,6 @@ namespace Corona
     c->SetGridy();
 
     return c;
-  }
-
-  /**************/
-  /* Print data */
-  /**************/
-  void Analyzer::print_data(const std::string data_name,
-         	            const std::string state, 
-		            const std::string region) 
-  { 
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Print " << data_name << " of " << state << ", " << region            << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
-    auto data = get_data(data_name, state, region);
-    std::cout << "Data size is: " << data.size() << std::endl;
-    std::cout << "Data content:" << std::endl;
-    std::cout << data << std::endl; 
-  };
-
-  /******************/
-  /* Get data graph */
-  /******************/
-  TGraphErrors* Analyzer::get_graph(const std::string data_name,
-                                    const Data_t &data, 
-                                    const Data_t &e_data)
-  { 
-    // Sanity check
-    if (data.size() == 0)
-    {
-      std::cout << "Data size is zero!" << std::endl;
-      return nullptr;
-    }
-    
-    if (e_data.size() > 0 && e_data.size() != data.size())
-    {
-      std::cout << "Error size differs from  data size!" << std::endl;
-      return nullptr;
-    }
-
-    // Set ROOT style
-    gStyle->SetTitleFontSize(0.06);
-    gStyle->SetTitleW(1);
-    gStyle->SetOptFit(111);
-    gStyle->SetStatX( 0.55 );
-    gStyle->SetStatY( 0.87 );
-
-    // Set data
-    Data_t days(data.size()); 
-    Data_t e_days(days.size(), 0.0); 
-    std::iota(days.begin(), days.end(), 0); // from day 0
-
-    if (m_debug)
-    {
-      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-      std::cout << " Get graph: " << data_name                                            << std::endl; 
-      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-      std::cout << "Data on graph:" << std::endl;
-      std::cout << data << std::endl;
-    }
-
-    // Make graph
-    auto gr = new TGraphErrors (days.size(), days.data(), data.data(), e_days.data(), e_data.data());
-    gr->SetName(Form("gr_%s", data_name.c_str()));
-    
-    gr->GetXaxis()->SetTitle("Days");
-    gr->GetXaxis()->SetTitleSize(0.045);
-    gr->GetXaxis()->SetTitleOffset(0.8);
-    
-    gr->GetYaxis()->SetTitle(data_name.c_str());
-    gr->GetYaxis()->SetTitleSize(0.045);
-    gr->GetYaxis()->SetTitleOffset(1.7);
-    
-    gr->SetMarkerStyle(21);
-    gr->SetMarkerSize(1);
-    gr->SetMarkerColor(kRed);
-    gr->SetLineColor(kRed);
-    gr->SetLineWidth(4);
-    gr->SetLineWidth(4);
-    
-    float max = *std::max_element(data.begin(), data.end());
-    gr->SetMaximum(1.1 * max);
-    gr->SetMinimum(0.0);
-
-    return gr;
-  };
-
-  /*****************/
-  /* Get histogram */
-  /*****************/
-  TH1F* Analyzer::get_histo(const std::string data_name,
-                            const Data_t &data,
-			    const int num_bins,
-			    const float x_min,  
-			    const float x_max)  
-  {
-    // Sanity checks
-    if (data.size() == 0)
-    {
-      std::cout << "Data size is zero!" << std::endl;
-      return nullptr;
-    }
-
-    if (num_bins <= 0 || x_max <= x_min)
-    {
-      std::cout << "Wrong histogram binning!" << std::endl;
-      return nullptr;
-    }
-    
-    // Set ROOT style
-    gStyle->SetTitleFontSize(0.06);
-    gStyle->SetTitleW(1);
-    gStyle->SetOptFit(111);
-    gStyle->SetStatX( 0.55 );
-    gStyle->SetStatY( 0.87 );
-
-    if (m_debug)
-    {
-      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-      std::cout << " Get histogram: " << data_name                                        << std::endl; 
-      std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-      std::cout << "Data on histogram:" << std::endl;
-      std::cout << data << std::endl;
-    }
-
-    // Make histogram
-    auto h = new TH1F(Form("h_%s", data_name.c_str()), "", num_bins, x_min, x_max);
-    h->SetTitle(Form(";%s;counts", data_name.c_str()));
-
-    h->GetXaxis()->SetTitleSize(0.045);
-    h->GetXaxis()->SetTitleOffset(0.8);
-
-    h->GetYaxis()->SetTitleSize(0.045);
-    h->GetYaxis()->SetTitleOffset(1.1);
-
-    h->SetLineWidth(2);
-    h->SetLineColor(kRed);
-    h->SetMarkerColor(kRed);
-
-    for (const auto &val : data) h->Fill(val);
-
-    return h;
   }
 
   /*************/
