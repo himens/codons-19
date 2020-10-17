@@ -99,10 +99,6 @@ for loc_set in loc_settings: # add custom data
     ana.add_data(100 * (ter.derive() / pos.derive()), "variaz_terapie / variaz_positivi (%)", sta, reg)
     ana.add_data(100 * (ter.derive() / osp.derive()), "variaz_terapie / variaz_ospedalizzati (%)", sta, reg)
 
-    if reg == "Veneto":
-         ter.show()
-         ter.derive().show()
-
 data_settings += [("tamponi_positivi (%)")]
 data_settings += [("variaz_terapie / variaz_positivi (%)")]
 data_settings += [("variaz_terapie / variaz_ospedalizzati (%)")]

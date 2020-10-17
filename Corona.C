@@ -2,23 +2,6 @@
 
 namespace Corona
 {
-  // Dataset_t definition 
-  using Dataset_t = std::map<std::string, std::map<std::string, float>>;
-
-  std::ostream& operator<<(std::ostream& os, const Dataset_t &dataset)
-  {
-    os << "{";
-    for (const auto &p : dataset) 
-    {
-      os << "\n  " << p.first << ": \n";
-
-      for (const auto &p2 : p.second)
-	  os << "  " << p2.first << ": " << p2.second << "\n";
-    }
-    os << "}\n";
-    return os;
-  }
-
   /***********************/
   /* Functions namespace */
   /***********************/
@@ -76,8 +59,6 @@ namespace Corona
 	double sigma    = p[3];
 	double R0 = log(2) / db_rate;
 
-	//if (1. / (1. + exp(-mu / sigma)) < 0.8) return 0.0;
-	//if (mu / sigma < 5.0) return 0.0; // max. population @x=0 (Fermi plateau)
 	return exp(norm + R0 * (x[0] - sigma * log(exp(mu/sigma) + exp(x[0]/sigma))));
       };
 
@@ -95,10 +76,6 @@ namespace Corona
       fun->SetParLimits(2., 10.0, 1e3);
       fun->SetParLimits(3., 1.0, 10.0);
       fun->SetParameters(10.0, 2.0, 10.0, 5.0);
-      //fun->FixParameter(1, 3.2); // from fit to Bergamo [6-14] (pure expo.)
-      //fun->FixParameter(1, 1.9); // from fit to Brescia [6-14] (pure expo.)
-      //fun->FixParameter(2, 37.);
-      //fun->FixParameter(3, 5);
 
       return fun;
     }
@@ -144,6 +121,9 @@ namespace Corona
   /************************************/
   class Analyzer
   {
+    public:
+      using Dataset_t = std::map<std::string, std::map<std::string, float>>;
+ 
     public:
       /* Constructors */
       Analyzer() {};
@@ -192,11 +172,32 @@ namespace Corona
 	       float fit_to_day = -1.0,
 	       int days_to_pred = 3,
 	       bool draw_extra_info = true);
- 
+
+      /* ostream overload */
+      friend std::ostream& operator<<(ostream& os, const Dataset_t &dataset);
+
     private:
       bool m_debug = false; // debug flag
       std::map<std::string, std::map<std::string, Dataset_t>> m_dataset{}; // dataset
   };
+  
+
+  /********************/
+  /* ostream overload */
+  /********************/
+  std::ostream& operator<<(ostream& os, const Analyzer::Dataset_t &dataset)
+  {
+    os << "{";
+    for (const auto &p : dataset) 
+    {
+      os << "\n  " << p.first << ": \n";
+
+      for (const auto &p2 : p.second)
+	os << "  " << p2.first << ": " << p2.second << "\n";
+    }
+    os << "}\n";
+    return os;
+  }
 
   /**********************/
   /* Read data from csv */
@@ -305,8 +306,8 @@ namespace Corona
   /**********************************/
   /* Get dataset of (state, region) */
   /**********************************/
-  Dataset_t Analyzer::get_dataset(const std::string state, 
-                                  const std::string region)
+  Analyzer::Dataset_t Analyzer::get_dataset(const std::string state, 
+                                            const std::string region)
   {
     // Get dataset
     Dataset_t dataset;

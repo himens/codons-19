@@ -11,7 +11,7 @@ class Data_t : public std::vector<float>
     /* Constructors */
     using std::vector<float>::vector; // use same constr of std::vector
 
-    /* std::cout stream overload */
+    /* ostream overload */
     friend std::ostream& operator<< (std::ostream& os, const Data_t &data);
 
     /* / overload */
@@ -39,9 +39,9 @@ class Data_t : public std::vector<float>
 	             const float x_max);  
 };
 
-/*****************************/
-/* std::cout stream overload */
-/*****************************/
+/********************/
+/* ostream overload */
+/********************/
 std::ostream& operator<< (std::ostream& os, const Data_t &data)
 {
   os << "[";
