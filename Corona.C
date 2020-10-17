@@ -394,7 +394,7 @@ namespace Corona
     int i = 0;
     for (const auto &p : m_dataset[state][region].begin()->second)
     {
-      if (i > data.size()) break;
+      if (i >= data.size()) break;
       m_dataset[state][region][data_name][p.first] = data[i];
       i++;
     }

@@ -8,11 +8,11 @@ from ROOT import Corona
 # Batch mode
 gROOT.SetBatch(True)
 
-# Corona data plot function
-def plot_corona_data(name,
-                     data_settings,
-                     loc_settings,
-                     log_scale = False):
+# Corona data plot functions
+def plot_per_data(name,
+                  data_settings,
+                  loc_settings,
+                  log_scale = False):
 
     canv = ana.make_canvas("canvas_" + name)
     pdf_name = name + ".pdf"
@@ -25,7 +25,7 @@ def plot_corona_data(name,
         c.SetLogy(log_scale);
 
         m_gr = TMultiGraph()
-        m_gr.SetTitle("Corona trend;Days;" + data_name);
+        m_gr.SetTitle(data_name + ";Days;" + data_name);
         if log_scale: m_gr.SetMinimum(1);
 
         for loc_set in loc_settings:
@@ -39,12 +39,48 @@ def plot_corona_data(name,
             gr.SetMarkerColor(color)        
             m_gr.Add(gr, "PL")
 
-            if loc_set == loc_settings[-1]: 
-                m_gr.Draw("A")
-                c.BuildLegend()
-                c.SaveAs(pdf_name)
+        m_gr.Draw("A")
+        c.BuildLegend()
+        c.SaveAs(pdf_name)
 
     canv.SaveAs(pdf_name + "]")
+
+def plot_per_loc(name,
+                 data_settings,
+                 loc_settings,
+                 log_scale = False):
+
+    canv = ana.make_canvas("canvas_" + name)
+    pdf_name = name + ".pdf"
+    canv.SaveAs(pdf_name + "[")
+
+    for loc_set in loc_settings:
+        (sta, reg) = loc_set
+
+        c = ana.make_canvas(name + "_" + reg)
+        c.SetLogy(log_scale);
+
+        m_gr = TMultiGraph()
+        m_gr.SetTitle(reg + ";Days;Counts");
+        if log_scale: m_gr.SetMinimum(1);
+
+        for data_set in data_settings:
+            (data_name, color) = data_set
+
+            data = ana.get_data(data_name, sta, reg)
+
+            gr = data.make_graph(data_name)
+            gr.SetLineColor(color)
+            gr.SetMarkerColor(color)        
+            gr.SetTitle(data_name)
+            m_gr.Add(gr, "PL")
+
+        m_gr.Draw("A")
+        c.BuildLegend()
+        c.SaveAs(pdf_name)
+
+    canv.SaveAs(pdf_name + "]")
+
 
 # Plot province
 ana = Corona.Analyzer("full_data_ita_prov.csv", "PC province")
@@ -59,10 +95,28 @@ loc_settings = [("ITA", "Bergamo", kRed      ),
 
 data_settings = [("totale_casi")]
 
-plot_corona_data("province_ita", data_settings, loc_settings)
+plot_per_data("province_ita", data_settings, loc_settings)
 
 # Plot regioni
 ana = Corona.Analyzer("full_data_ita_reg.csv", "PC regioni")
+
+regions = [] # Add custom data
+for p in ana.get_dataset()["ITA"]:
+    regions.append(p.first)
+
+for reg in regions: 
+    pos  = ana.get_data("totale_positivi", "ITA", reg)
+    tamp = ana.get_data("tamponi", "ITA", reg) 
+    ter =  ana.get_data("terapia_intensiva", "ITA", reg) 
+    osp =  ana.get_data("totale_ospedalizzati", "ITA", reg) 
+    dec =  ana.get_data("deceduti", "ITA", reg) 
+    ric =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
+
+    ana.add_data(100 * (pos / tamp), "tamponi_positivi (%)", "ITA", reg)
+    ana.add_data(pos.derive().average(7), "variaz_positivi", "ITA", reg)
+    ana.add_data(ter.derive().average(7), "variaz_terapie", "ITA", reg)
+    ana.add_data(ric.derive().average(7), "variaz_ricoverati", "ITA", reg)
+    ana.add_data(dec.derive().average(7), "variaz_deceduti", "ITA", reg)
 
 loc_settings = [("ITA", "Lombardia",      kRed       ), 
                 ("ITA", "Veneto",         kBlue      ),
@@ -73,8 +127,7 @@ loc_settings = [("ITA", "Lombardia",      kRed       ),
                 ("ITA", "Umbria",         kGray      ),
                 ("ITA", "Campania",       kCyan + 3  ),
                 ("ITA", "Lazio",          kBlack     ),
-                ("ITA", "Liguria",        kYellow + 1),
-                ("ITA", "Sardegna",       kBlue +   2)]
+                ("ITA", "Liguria",        kYellow + 1)]
 
 data_settings = [("totale_casi"               ), 
                  ("deceduti"                  ),
@@ -83,38 +136,19 @@ data_settings = [("totale_casi"               ),
                  ("totale_ospedalizzati"      ), 
                  ("isolamento_domiciliare"    ),
                  ("tamponi"                   ),
-                 ("ricoverati_con_sintomi"    )]
+                 ("ricoverati_con_sintomi"    ),
+                 ("tamponi_positivi (%)"      )]
 
-for loc_set in loc_settings: # add custom data
-    (sta, reg, _) = loc_set
-
-    pos  = ana.get_data("totale_positivi", sta, reg)
-    tamp = ana.get_data("tamponi", sta, reg) 
-    ter =  ana.get_data("terapia_intensiva", sta, reg) 
-    osp =  ana.get_data("totale_ospedalizzati", sta, reg) 
-    dec =  ana.get_data("deceduti", sta, reg) 
-    ric =  ana.get_data("ricoverati_con_sintomi", sta, reg) 
-
-    ana.add_data(100 * (pos / tamp), "tamponi_positivi (%)", sta, reg)
-    ana.add_data(100 * (ter.derive() / pos.derive()), "variaz_terapie / variaz_positivi (%)", sta, reg)
-    ana.add_data(100 * (ter.derive() / osp.derive()), "variaz_terapie / variaz_ospedalizzati (%)", sta, reg)
-
-data_settings += [("tamponi_positivi (%)")]
-data_settings += [("variaz_terapie / variaz_positivi (%)")]
-data_settings += [("variaz_terapie / variaz_ospedalizzati (%)")]
-
-plot_corona_data("regioni_ita", data_settings, loc_settings, False)
+plot_per_data("regioni_ita", data_settings, loc_settings, False)
 
 # Sum over ITA regions
 loc_settings = [("ITA", "", kRed)]
 data_settings = [("deceduti"            ),
                  ("terapia_intensiva"   ), 
                  ("totale_ospedalizzati"),
-                 ("ricoverati_con_sintomi"),
-                 ("variaz_terapie / variaz_positivi (%)"),
-                 ("variaz_terapie / variaz_ospedalizzati (%)")]
+                 ("ricoverati_con_sintomi")]
 
-plot_corona_data("totale_ita", data_settings, loc_settings, False)
+plot_per_data("totale_ita", data_settings, loc_settings, False)
 
 # Summary plots per region
 loc_settings = [("ITA", "Lombardia"),      
@@ -127,46 +161,22 @@ loc_settings = [("ITA", "Lombardia"),
                 ("ITA", "Campania"),      
                 ("ITA", "Lazio"),          
                 ("ITA", "Liguria"),        
-                ("ITA", "Sardegna")]
-#               ("ITA", "Sicilia"),       
-#                ("ITA", "Puglia"),        
-#                ("ITA", "Calabria"),        
-#                ("ITA", "Basilicata")]        
+                ("ITA", "Sardegna"),
+                ("ITA", "Sicilia"),        
+                ("ITA", "Puglia")]        
 
-data_settings = [("deceduti",                                   kBlue),
+data_settings = [("deceduti",                                   kBlack),
                  ("terapia_intensiva",                          kGreen + 2), 
                  ("totale_ospedalizzati",                       kViolet),
                  ("ricoverati_con_sintomi",                     kRed)]
 
-c_sum = ana.make_canvas("summary_regioni")
-pdf_name = "summary_regioni_ita.pdf"
-c_sum.SaveAs(pdf_name + "[")
+plot_per_loc("summary_regioni_ita", data_settings, loc_settings, False)
 
-for loc_set in loc_settings:
-    (sta, reg) = loc_set
+data_settings = [("variaz_ricoverati",                        kRed),
+                 ("variaz_deceduti",                          kBlack),
+                 ("variaz_terapie",                           kBlue)]
 
-    c = ana.make_canvas("summary_" + reg)
-    c.SetLogy(False);
-
-    m_gr = TMultiGraph()
-    m_gr.SetTitle("Summary " + reg + ";Days;Counts");
-
-    for data_set in data_settings:
-        (data_name, color) = data_set
-
-        data = ana.get_data(data_name, sta, reg)
-        gr = data.make_graph(data_name)
-        gr.SetLineColor(color)
-        gr.SetMarkerColor(color)        
-        gr.SetTitle(data_name)
-        m_gr.Add(gr, "PL")
-
-    m_gr.SetMinimum(1)
-    m_gr.Draw("A")
-    c.BuildLegend()
-    c.SaveAs(pdf_name)
-
-c_sum.SaveAs(pdf_name + "]")
+plot_per_loc("variaz_regioni_ita", data_settings, loc_settings, False)
 
 # Plot stati
 ana = Corona.Analyzer("full_data_ecdc.csv", "ecdc")
@@ -188,5 +198,5 @@ loc_settings = [("Italy",          "", kRed       ),
 data_settings = [("total_cases"),
                  ("total_deaths")]
 
-plot_corona_data("stati", data_settings, loc_settings, False)
+plot_per_data("stati", data_settings, loc_settings, False)
 

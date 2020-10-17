@@ -29,6 +29,9 @@ class Data_t : public std::vector<float>
     /* Get data derivative */ 
     Data_t derive();
 
+    /* Average data in chunck of N elements */ 
+    Data_t average(const int N);
+
     /* Put data on ROOT graph */ 
     TGraph* make_graph(const std::string data_name);
 
@@ -119,6 +122,28 @@ Data_t Data_t::derive()
 
   return der;
 }    
+
+/****************************************/
+/* Average data in chunck of N elements */ 
+/****************************************/
+Data_t Data_t::average(const int N)
+{
+  int i = 0;
+  Data_t avg_data;
+
+  while (i < this->size())
+  {
+    float avg = 0.0;
+    int chunk_size = (i + N < this->size()) ? N : this->size() - i;
+
+    for (int j = 0; j < chunk_size; j++) avg += this->at(i + j) / chunk_size;
+
+    avg_data.push_back(avg);
+    i += chunk_size;
+  }
+
+  return avg_data;
+}
 
 /**************************/
 /* Put data on ROOT graph */ 
