@@ -113,7 +113,7 @@ for reg in regions:
     ric =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
 
     ana.add_data(100 * (pos / tamp), "tamponi_positivi (%)", "ITA", reg)
-    ana.add_data(3 * ter.derive().average(7), "variaz_terapie", "ITA", reg)
+    ana.add_data(3 * ter.derive().average(7), "variaz_terapie (x3)", "ITA", reg)
     ana.add_data(ric.derive().average(7), "variaz_ricoverati", "ITA", reg)
     ana.add_data(dec.derive().average(7), "variaz_deceduti", "ITA", reg)
 
@@ -173,7 +173,7 @@ plot_location_summary("summary_regioni_ita", data_settings, loc_settings, False)
 
 data_settings = [("variaz_ricoverati",                        kRed),
                  ("variaz_deceduti",                          kBlack),
-                 ("variaz_terapie",                           kBlue)]
+                 ("variaz_terapie (x3)",                      kBlue)]
 
 plot_location_summary("variaz_regioni_ita", data_settings, loc_settings, False)
 
