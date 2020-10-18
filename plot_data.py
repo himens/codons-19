@@ -9,10 +9,10 @@ from ROOT import Corona
 gROOT.SetBatch(True)
 
 # Corona data plot functions
-def plot_per_data(name,
-                  data_settings,
-                  loc_settings,
-                  log_scale = False):
+def plot_data_summary(name,
+                      data_settings,
+                      loc_settings,
+                      log_scale = False):
 
     canv = ana.make_canvas("canvas_" + name)
     pdf_name = name + ".pdf"
@@ -45,10 +45,10 @@ def plot_per_data(name,
 
     canv.SaveAs(pdf_name + "]")
 
-def plot_per_loc(name,
-                 data_settings,
-                 loc_settings,
-                 log_scale = False):
+def plot_location_summary(name,
+                          data_settings,
+                          loc_settings,
+                          log_scale = False):
 
     canv = ana.make_canvas("canvas_" + name)
     pdf_name = name + ".pdf"
@@ -95,7 +95,7 @@ loc_settings = [("ITA", "Bergamo", kRed      ),
 
 data_settings = [("totale_casi")]
 
-plot_per_data("province_ita", data_settings, loc_settings)
+plot_data_summary("province_ita", data_settings, loc_settings)
 
 # Plot regioni
 ana = Corona.Analyzer("full_data_ita_reg.csv", "PC regioni")
@@ -113,8 +113,7 @@ for reg in regions:
     ric =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
 
     ana.add_data(100 * (pos / tamp), "tamponi_positivi (%)", "ITA", reg)
-    ana.add_data(pos.derive().average(7), "variaz_positivi", "ITA", reg)
-    ana.add_data(ter.derive().average(7), "variaz_terapie", "ITA", reg)
+    ana.add_data(3 * ter.derive().average(7), "variaz_terapie", "ITA", reg)
     ana.add_data(ric.derive().average(7), "variaz_ricoverati", "ITA", reg)
     ana.add_data(dec.derive().average(7), "variaz_deceduti", "ITA", reg)
 
@@ -139,7 +138,7 @@ data_settings = [("totale_casi"               ),
                  ("ricoverati_con_sintomi"    ),
                  ("tamponi_positivi (%)"      )]
 
-plot_per_data("regioni_ita", data_settings, loc_settings, False)
+plot_data_summary("regioni_ita", data_settings, loc_settings, False)
 
 # Sum over ITA regions
 loc_settings = [("ITA", "", kRed)]
@@ -148,7 +147,7 @@ data_settings = [("deceduti"            ),
                  ("totale_ospedalizzati"),
                  ("ricoverati_con_sintomi")]
 
-plot_per_data("totale_ita", data_settings, loc_settings, False)
+plot_data_summary("totale_ita", data_settings, loc_settings, False)
 
 # Summary plots per region
 loc_settings = [("ITA", "Lombardia"),      
@@ -170,13 +169,13 @@ data_settings = [("deceduti",                                   kBlack),
                  ("totale_ospedalizzati",                       kViolet),
                  ("ricoverati_con_sintomi",                     kRed)]
 
-plot_per_loc("summary_regioni_ita", data_settings, loc_settings, False)
+plot_location_summary("summary_regioni_ita", data_settings, loc_settings, False)
 
 data_settings = [("variaz_ricoverati",                        kRed),
                  ("variaz_deceduti",                          kBlack),
                  ("variaz_terapie",                           kBlue)]
 
-plot_per_loc("variaz_regioni_ita", data_settings, loc_settings, False)
+plot_location_summary("variaz_regioni_ita", data_settings, loc_settings, False)
 
 # Plot stati
 ana = Corona.Analyzer("full_data_ecdc.csv", "ecdc")
@@ -198,5 +197,5 @@ loc_settings = [("Italy",          "", kRed       ),
 data_settings = [("total_cases"),
                  ("total_deaths")]
 
-plot_per_data("stati", data_settings, loc_settings, False)
+plot_data_summary("stati", data_settings, loc_settings, False)
 
