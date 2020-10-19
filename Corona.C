@@ -156,6 +156,12 @@ namespace Corona
 	              const std::string state, 
 	              const std::string region = "");
 
+      /* Get all states stored in dataset */
+      std::vector<std::string> get_states();
+
+      /* Get all regions of a state stored in dataset */
+      std::vector<std::string> get_regions(const std::string sta);
+
       /* Add new data into dataset */
       void add_data(const Data_t &data,
            	    const std::string data_name,
@@ -391,6 +397,13 @@ namespace Corona
                           const std::string state, 
 			  const std::string region)
   {
+    // sanity check
+    if (state.empty() || region.empty()) 
+    {
+      std::cout << "State or region not specified! Cannot add " << data_name << std::endl;
+      return;
+    }
+
     int i = 0;
     for (const auto &p : m_dataset[state][region].begin()->second)
     {
@@ -407,6 +420,29 @@ namespace Corona
       std::cout << data_name << " of " << state << ", " << region << ":" << std::endl;
       std::cout << data << std::endl;
     }
+  }
+
+  /************************************/
+  /* Get all states stored in dataset */
+  /************************************/
+  std::vector<std::string> Analyzer::get_states()
+  {
+    std::vector<std::string> states;
+    for (const auto &p : m_dataset) states.push_back(p.first);
+    return states;
+  }
+
+  /************************************************/
+  /* Get all regions of a state stored in dataset */
+  /************************************************/
+  std::vector<std::string> Analyzer::get_regions(const std::string sta)
+  {
+    // sanity check 
+    if (m_dataset.count(sta) == 0) return {};
+
+    std::vector<std::string> regions;
+    for (const auto &p : m_dataset[sta]) regions.push_back(p.first);
+    return regions;
   }
 
   /***********************/
