@@ -103,21 +103,29 @@ plot_data_summary("province_ita", data_settings, loc_settings)
 # Plot regioni
 ana = Corona.Analyzer("full_data_ita_reg.csv", "PC regioni")
 
-avg_days = 2
+days = 7
 for reg in ana.get_regions("ITA"): # Add custom data
-    pos  = ana.get_data("totale_positivi", "ITA", reg)
-    tamp = ana.get_data("tamponi", "ITA", reg) 
-    ter =  ana.get_data("terapia_intensiva", "ITA", reg) 
-    osp =  ana.get_data("totale_ospedalizzati", "ITA", reg) 
-    dec =  ana.get_data("deceduti", "ITA", reg) 
-    ric =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
+    positivi   = ana.get_data("totale_casi", "ITA", reg)
+    tamponi    = ana.get_data("tamponi", "ITA", reg) 
+    terapie    =  ana.get_data("terapia_intensiva", "ITA", reg) 
+    ospedaliz  =  ana.get_data("totale_ospedalizzati", "ITA", reg) 
+    deceduti   =  ana.get_data("deceduti", "ITA", reg) 
+    ricoverati =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
 
-    ana.add_data(100 * (pos.derive().average(avg_days) / tamp.derive().average(avg_days)), "positivi/tamponi (%)", "ITA", reg)
-    ana.add_data(100 * (ric.derive().average(avg_days) / tamp.derive().average(avg_days)), "ricoverati/positivi (%)", "ITA", reg)
-    ana.add_data(3 * ter.derive().average(avg_days), "variaz_terapie (x3)", "ITA", reg)
-    ana.add_data(ric.derive().average(avg_days), "variaz_ricoverati", "ITA", reg)
-    ana.add_data(dec.derive().average(avg_days), "variaz_deceduti", "ITA", reg)
-    
+    d_positivi    = positivi.derive().average(days)
+    d_tamponi     = tamponi.derive().average(days)
+    d_ricoverati  = ricoverati.derive().average(days)
+    d_terapie     = terapie.derive().average(days)
+    d_deceduti    = deceduti.derive().average(days)
+
+    ana.add_data(100 * (d_positivi / d_tamponi), "positivi/tamponi (%)", "ITA", reg)
+    ana.add_data(100 * (d_ricoverati / d_positivi), "ricoverati/positivi (%)", "ITA", reg)
+    ana.add_data(100 * (d_terapie / d_positivi), "terapie/positivi (%)", "ITA", reg)
+    ana.add_data(0.1 * d_positivi, "variaz_positivi (x0.1)", "ITA", reg)
+    ana.add_data(d_ricoverati, "variaz_ricoverati", "ITA", reg)
+    ana.add_data(d_terapie, "variaz_terapie", "ITA", reg)
+    ana.add_data(d_deceduti, "variaz_deceduti", "ITA", reg)
+
 loc_settings = [("ITA", "Lombardia",      kRed), 
                 ("ITA", "Veneto",         kBlue),
                 ("ITA", "Emilia-Romagna", kGreen + 2),
@@ -132,13 +140,14 @@ loc_settings = [("ITA", "Lombardia",      kRed),
 data_settings = [("totale_casi",             []), 
                  ("deceduti",                []),
                  ("terapia_intensiva",       []), 
-                 ("totale_positivi",         []), 
+                 ("totale_casi",         []), 
                  ("totale_ospedalizzati",    []), 
                  ("isolamento_domiciliare",  []),
                  ("tamponi",                 []),
                  ("ricoverati_con_sintomi",  []),
                  ("positivi/tamponi (%)",    []),
-                 ("ricoverati/positivi (%)", [-5, 5])]
+                 ("ricoverati/positivi (%)", [-50, 100]),
+                 ("terapie/positivi (%)",    [-20, 20])]
 
 plot_data_summary("regioni_ita", data_settings, loc_settings, False)
 
@@ -173,9 +182,10 @@ data_settings = [("deceduti",               kBlack),
 
 plot_location_summary("summary_regioni_ita", data_settings, loc_settings, False)
 
-data_settings = [("variaz_ricoverati",   kRed),
-                 ("variaz_deceduti",     kBlack),
-                 ("variaz_terapie (x3)", kBlue)]
+data_settings = [("variaz_positivi (x0.1)",  kRed),
+                 ("variaz_ricoverati",       kOrange + 1),
+                 ("variaz_deceduti",         kBlack),
+                 ("variaz_terapie",          kBlue)]
 
 plot_location_summary("variaz_regioni_ita", data_settings, loc_settings, False)
 
