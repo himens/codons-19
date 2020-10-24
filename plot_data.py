@@ -107,10 +107,10 @@ days = 7
 for reg in ana.get_regions("ITA"): # Add custom data
     positivi   = ana.get_data("totale_casi", "ITA", reg)
     tamponi    = ana.get_data("tamponi", "ITA", reg) 
-    terapie    =  ana.get_data("terapia_intensiva", "ITA", reg) 
-    ospedaliz  =  ana.get_data("totale_ospedalizzati", "ITA", reg) 
-    deceduti   =  ana.get_data("deceduti", "ITA", reg) 
-    ricoverati =  ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
+    terapie    = ana.get_data("terapia_intensiva", "ITA", reg) 
+    ospedaliz  = ana.get_data("totale_ospedalizzati", "ITA", reg) 
+    deceduti   = ana.get_data("deceduti", "ITA", reg) 
+    ricoverati = ana.get_data("ricoverati_con_sintomi", "ITA", reg) 
 
     d_positivi    = positivi.derive().average(days)
     d_tamponi     = tamponi.derive().average(days)
@@ -156,7 +156,11 @@ loc_settings = [("ITA", "", kRed)]
 data_settings = [("deceduti",               []),
                  ("terapia_intensiva",      []), 
                  ("totale_ospedalizzati",   []),
-                 ("ricoverati_con_sintomi", [])]
+                 ("ricoverati_con_sintomi", []),
+                 ("variaz_positivi (x0.1)", []),
+                 ("variaz_deceduti",        []),
+                 ("variaz_terapie",         []),
+                 ("variaz_ricoverati",      [])]
 
 plot_data_summary("totale_ita", data_settings, loc_settings, False)
 
@@ -192,11 +196,15 @@ plot_location_summary("variaz_regioni_ita", data_settings, loc_settings, False)
 # Plot stati
 ana = Corona.Analyzer("full_data_ecdc.csv", "ecdc")
 
+days = 7
 for sta in ana.get_states(): # Add custom data
     for reg in ana.get_regions(sta):
-        tot_cases = ana.get_data("total_cases", sta, reg)
-        tot_deaths = ana.get_data("total_deaths", sta, reg)
-        ana.add_data(100 * (tot_deaths / tot_cases), "deaths / cases (%)", sta, reg) 
+        cases    = ana.get_data("total_cases", sta, reg)
+        deaths   = ana.get_data("total_deaths", sta, reg)
+        d_cases  = cases.derive().average(days)
+        d_deaths = deaths.derive().average(days)
+
+        ana.add_data(100 * (d_deaths / d_cases), "variaz_deaths/variaz_cases (%)", sta, reg)
 
 loc_settings = [("Italy",          "", kRed),
                 ("United States",  "", kBlue),
@@ -204,16 +212,16 @@ loc_settings = [("Italy",          "", kRed),
                 ("Spain",          "", kOrange), 
 #                ("China",          "", kViolet),
                 ("United Kingdom", "", kMagenta),
-                ("Germany",        "", kGray),
-                ("South Korea",    "", kBlack),
-                ("Netherlands",    "", kCyan + 3),
-                ("Russia",         "", kYellow + 1),
+                ("Germany",        "", kGray)]
+#                ("South Korea",    "", kBlack),
+#                ("Netherlands",    "", kCyan + 3),
+#                ("Russia",         "", kYellow + 1),
 #                ("Japan",          "", kBlue - 2),
-                ("Brazil",         "", kRed - 2)]
+#                ("Brazil",         "", kRed - 2)]
 #                ("India",          "", kYellow - 2)]
 
-data_settings = [("total_cases",        []),
-                 ("total_deaths",       []),
-                 ("deaths / cases (%)", [])]
+data_settings = [("total_cases",                    []),
+                 ("total_deaths",                   []),
+                 ("variaz_deaths/variaz_cases (%)", [0., 30])]
 
 plot_data_summary("stati", data_settings, loc_settings, False)
