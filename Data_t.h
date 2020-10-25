@@ -29,8 +29,17 @@ class Data_t : public std::vector<float>
     /* Get data derivative */ 
     Data_t derive();
 
-    /* Average data in chunck of N elements */ 
+    /* Average data in chunck of N contiguous elements */ 
     Data_t average(const int N);
+
+    /* Return max element */
+    float max(); 
+
+    /* Return min element */
+    float min(); 
+
+    /* Return data sum */
+    float sum();
 
     /* Put data on ROOT graph */ 
     TGraph* make_graph(const std::string data_name);
@@ -123,9 +132,9 @@ Data_t Data_t::derive()
   return der;
 }    
 
-/****************************************/
-/* Average data in chunck of N elements */ 
-/****************************************/
+/***************************************************/
+/* Average data in chunck of N contiguous elements */ 
+/***************************************************/
 Data_t Data_t::average(const int N)
 {
   int i = 0;
@@ -144,6 +153,24 @@ Data_t Data_t::average(const int N)
 
   return avg_data;
 }
+
+/**********************/
+/* Return min element */
+/**********************/
+float Data_t::min()
+{ return *std::min_element(this->begin(), this->end()); }
+
+/**********************/
+/* Return max element */
+/**********************/
+float Data_t::max()
+{ return *std::max_element(this->begin(), this->end()); }
+
+/*******************/
+/* Return data sum */
+/*******************/
+float Data_t::sum()
+{ return std::accumulate(this->begin(), this->end(), 0.0); }
 
 /**************************/
 /* Put data on ROOT graph */ 
