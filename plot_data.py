@@ -125,6 +125,7 @@ for reg in ana.get_regions("ITA"): # Add custom data
     ana.add_data(d_ricoverati, "variaz_ricoverati", "ITA", reg)
     ana.add_data(d_terapie, "variaz_terapie", "ITA", reg)
     ana.add_data(d_deceduti, "variaz_deceduti", "ITA", reg)
+    ana.add_data(100 * ((d_ricoverati + d_terapie) / d_positivi), "variaz_malati/positivi (%)", "ITA", reg);
 
 loc_settings = [("ITA", "Lombardia",      kRed), 
                 ("ITA", "Veneto",         kBlue),
@@ -140,7 +141,6 @@ loc_settings = [("ITA", "Lombardia",      kRed),
 data_settings = [("totale_casi",             []), 
                  ("deceduti",                []),
                  ("terapia_intensiva",       []), 
-                 ("totale_casi",         []), 
                  ("totale_ospedalizzati",    []), 
                  ("isolamento_domiciliare",  []),
                  ("tamponi",                 []),
