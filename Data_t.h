@@ -120,7 +120,10 @@ Data_t Data_t::operator - (const Data_t &data)
   }
 
   Data_t out_data(this->size());
-  std::transform(this->begin(), this->end(), data.begin(), out_data.begin(), std::minus<int>());
+  for (size_t i = 0; i < this->size(); i++) 
+  {
+    out_data[i] = this->at(i) - data[i];
+  }
 
   return out_data;
 }
@@ -137,7 +140,10 @@ Data_t Data_t::operator + (const Data_t &data)
   }
 
   Data_t out_data(this->size());
-  std::transform(this->begin(), this->end(), data.begin(), out_data.begin(), std::plus<int>());
+  for (size_t i = 0; i < this->size(); i++) 
+  {
+    out_data[i] = this->at(i) + data[i];
+  }
 
   return out_data;
 }
@@ -183,7 +189,10 @@ Data_t Data_t::average(const int N)
     int chunk_size = (i + N < this->size()) ? N : this->size() - i;
 
     float avg = 0.0;
-    for (int j = 0; j < chunk_size; j++) avg += this->at(i + j) / chunk_size;
+    for (int j = 0; j < chunk_size; j++) 
+    {
+      avg += this->at(i + j) / chunk_size;
+    }
 
     out_data.push_back(avg);
     i += chunk_size;
