@@ -23,6 +23,12 @@ class Data_t : public std::vector<float>
     /* * overload (left mult. by scalar) */
     friend Data_t operator* (const float scale, Data_t &data);
 
+    /* - overload */
+    Data_t operator- (const Data_t &data);
+
+    /* + overload */
+    Data_t operator+ (const Data_t &data);
+
     /* Print data */
     void show();
 
@@ -73,13 +79,13 @@ Data_t Data_t::operator/ (const Data_t &data)
     return {};
   }
 
-  Data_t div_data(this->size());
+  Data_t out_data(this->size());
   for (size_t i = 0; i < this->size(); i++)
   {
-    div_data[i] = data[i] > 0.0 ? this->at(i) / data[i] : 0.0;
+    out_data[i] = data[i] > 0.0 ? this->at(i) / data[i] : 0.0;
   }
 
-  return div_data;
+  return out_data;
 } 
 
 /**************************************/
@@ -87,21 +93,53 @@ Data_t Data_t::operator/ (const Data_t &data)
 /**************************************/
 Data_t Data_t::operator* (const float scale) 
 {
-  Data_t scaled_data(this->size());
+  Data_t out_data(this->size());
   for (size_t i = 0; i < this->size(); i++) 
   {
-    scaled_data[i] = scale * this->at(i);
+    out_data[i] = scale * this->at(i);
   }
 
-  return scaled_data;
+  return out_data;
 };
 
 /*************************************/
 /* * overload (left mult. by scalar) */
 /*************************************/
 Data_t operator* (const float scale, Data_t &data) 
+{ return data * scale; }
+
+/**************/
+/* - overload */
+/**************/
+Data_t Data_t::operator - (const Data_t &data)
 {
-  return data * scale;
+  if (this->size() != data.size())
+  {
+    std::cout << "Undefined subtraction (size differs)!" << std::endl; 
+    return {};
+  }
+
+  Data_t out_data(this->size());
+  std::transform(this->begin(), this->end(), data.begin(), out_data.begin(), std::minus<int>());
+
+  return out_data;
+}
+
+/**************/
+/* + overload */
+/**************/
+Data_t Data_t::operator + (const Data_t &data)
+{
+  if (this->size() != data.size())
+  {
+    std::cout << "Undefined subtraction (size differs)!" << std::endl; 
+    return {};
+  }
+
+  Data_t out_data(this->size());
+  std::transform(this->begin(), this->end(), data.begin(), out_data.begin(), std::plus<int>());
+
+  return out_data;
 }
 
 /**************/
@@ -123,13 +161,13 @@ void Data_t::show()
 /***********************/
 Data_t Data_t::derive()
 {
-  Data_t der(this->size() - 1);
+  Data_t out_data(this->size() - 1);
   for (size_t i = 1; i < this->size(); i++)
   {
-    der[i-1] = this->at(i) - this->at(i-1);
+    out_data[i-1] = this->at(i) - this->at(i-1);
   }
 
-  return der;
+  return out_data;
 }    
 
 /***************************************************/
@@ -138,20 +176,20 @@ Data_t Data_t::derive()
 Data_t Data_t::average(const int N)
 {
   int i = 0;
-  Data_t avg_data;
+  Data_t out_data;
 
   while (i < this->size())
   {
-    float avg = 0.0;
     int chunk_size = (i + N < this->size()) ? N : this->size() - i;
 
+    float avg = 0.0;
     for (int j = 0; j < chunk_size; j++) avg += this->at(i + j) / chunk_size;
 
-    avg_data.push_back(avg);
+    out_data.push_back(avg);
     i += chunk_size;
   }
 
-  return avg_data;
+  return out_data;
 }
 
 /**********************/
