@@ -213,8 +213,7 @@ TGraph* Data_t::make_graph(const std::string data_name)
   gr->SetLineWidth(4);
   gr->SetLineWidth(4);
 
-  float max = *std::max_element(this->begin(), this->end());
-  gr->SetMaximum(1.1 * max);
+  gr->SetMaximum(1.1 * this->max());
   gr->SetMinimum(0.0);
 
   return gr;
