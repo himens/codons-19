@@ -204,10 +204,12 @@ for sta in ana.get_states(): # Add custom data
         d_cases  = cases.derive().average(days)
         d_deaths = deaths.derive().average(days)
 
+        ana.add_data(d_cases, "variaz_cases", sta, reg)
+        ana.add_data(d_deaths, "variaz_deaths", sta, reg)
         ana.add_data(100 * (d_deaths / d_cases), "variaz_deaths/variaz_cases (%)", sta, reg)
 
 loc_settings = [("Italy",          "", kRed),
-                ("United States",  "", kBlue),
+#                ("United States",  "", kBlue),
                 ("France",         "", kGreen + 2),
                 ("Spain",          "", kOrange), 
 #                ("China",          "", kViolet),
@@ -222,6 +224,8 @@ loc_settings = [("Italy",          "", kRed),
 
 data_settings = [("total_cases",                    []),
                  ("total_deaths",                   []),
+                 ("variaz_cases",                   []),
+                 ("variaz_deaths",                  []),
                  ("variaz_deaths/variaz_cases (%)", [0., 30])]
 
 plot_data_summary("stati", data_settings, loc_settings, False)
