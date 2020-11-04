@@ -226,6 +226,6 @@ data_settings = [("total_cases",                    []),
                  ("total_deaths",                   []),
                  ("variaz_cases",                   []),
                  ("variaz_deaths",                  []),
-                 ("variaz_deaths/variaz_cases (%)", [0., 30])]
+                 ("variaz_deaths/variaz_cases (%)", [0., 5])]
 
 plot_data_summary("stati", data_settings, loc_settings, False)
