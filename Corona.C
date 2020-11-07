@@ -255,18 +255,17 @@ namespace Corona
     std::string line;
     std::getline(file, line); // first line
     const auto &csv_fields = tokenize(line, ',');
-    const auto num_csv_fields = csv_fields.size();
 
     // Parse csv file
     while (std::getline(file, line))
     {
       if (line.empty()) continue;  // skip empty line
       if (line.find(",") == std::string::npos) continue; // skip line with no delimiter
-      if (line.find('"') != std::string::npos) continue; // skip line with comment
+      if (line.front() == '#' || line.front() == '"') continue; // skip line with comment
 
       // Tokenize
-      const auto &tokens = tokenize(line, ',');
-      const auto num_tokens = tokens.size();
+      auto tokens = tokenize(line, ',');
+      if (tokens.size() > csv_fields.size()) tokens.resize(csv_fields.size()); // too much tokens, resize
 
       // Data format
       // ECDC
