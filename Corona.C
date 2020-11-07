@@ -261,6 +261,8 @@ namespace Corona
     while (std::getline(file, line))
     {
       if (line.empty()) continue;  // skip empty line
+      if (line.find(",") == std::string::npos) continue; // skip line with no delimiter
+      if (line.find('"') != std::string::npos) continue; // skip line with comment
 
       // Tokenize
       const auto &tokens = tokenize(line, ',');
@@ -273,7 +275,7 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = "N/A";
-	for (size_t i = 2; i < csv_fields.size(); i++) 
+	for (size_t i = 2; i < tokens.size(); i++) 
 	{
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
@@ -285,9 +287,8 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = tokens[3];
-	for (size_t i = 4; i < csv_fields.size(); i++) 
+	for (size_t i = 4; i < tokens.size(); i++) 
 	{
-	  if (csv_fields[i] == "note") continue;
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
@@ -298,9 +299,8 @@ namespace Corona
 	std::string day    = tokens[0];
 	std::string state  = tokens[1];
 	std::string region = tokens[5];
-	for (size_t i = 6; i < csv_fields.size(); i++) 
+	for (size_t i = 6; i < tokens.size(); i++) 
 	{
-	  if (csv_fields[i] == "note") continue;
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
       }
