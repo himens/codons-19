@@ -171,14 +171,6 @@ namespace Corona
       /* Make default canvas */
       TCanvas* make_canvas(const std::string name);
 
-      /* Fit graph */
-      void fit(TGraphErrors *gr,
-	       Functions::Type type = Functions::Type::test,
-	       float fit_from_day = 0.0, 
-	       float fit_to_day = -1.0,
-	       int days_to_pred = 3,
-	       bool draw_extra_info = true);
-
       /* ostream overload */
       friend std::ostream& operator<<(ostream& os, const Dataset_t &dataset);
 
@@ -225,7 +217,7 @@ namespace Corona
     // utility function: convert string to digit
     auto to_digit = [] (const std::string str)
     {
-      bool is_digit = str.empty() ? false : std::all_of(str.begin(), str.end(), ::isdigit);
+      bool is_digit = !str.empty() && (str.find_first_not_of("0123456789.") == std::string::npos);
       return is_digit ? std::stof(str) : 0.0;
     };
 
@@ -271,10 +263,10 @@ namespace Corona
       // ECDC
       if (format_name == "ecdc")
       {
-	std::string day    = tokens[0];
-	std::string state  = tokens[1];
+	std::string state  = tokens[2];
+	std::string day    = tokens[3];
 	std::string region = "N/A";
-	for (size_t i = 2; i < tokens.size(); i++) 
+	for (size_t i = 4; i < tokens.size(); i++) 
 	{
 	  m_dataset[state][region][csv_fields[i]][day] = to_digit(tokens[i]);
 	}
@@ -456,168 +448,5 @@ namespace Corona
     c->SetGridy();
 
     return c;
-  }
-
-  /*************/
-  /* Fit graph */
-  /*************/
-  void Analyzer::fit(TGraphErrors *gr,
-                     Functions::Type fun_type,
-                     float fit_from_day, 
-                     float fit_to_day,
-                     int days_to_pred,
-                     bool draw_extra_info)
-  {
-    std::cout << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::cout << " Fit graph: " << gr->GetName()                                        << std::endl;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
-    // Sanity checks
-    if (gr == nullptr) 
-    {
-      std::cout << "Graph is nullptr!" << std::endl;
-      return;
-    }
-
-    if (gr->GetN() == 0) 
-    {
-      std::cout << "Graph is empty!" << std::endl;
-      return;
-    }
-
-    if (fit_from_day < 0.0 || 
-	(fit_to_day != -1.0 && fit_from_day >= fit_to_day)) 
-    {
-      std::cout << "Wrong fit range [" << fit_from_day << ", " << fit_to_day << "]!" << std::endl;
-      return;
-    }
-
-    if (days_to_pred < 0)
-    {
-      std::cout << "Number of days to predict are negative!" << std::endl;
-      days_to_pred = 0;
-    }
-
-    // Draw data graph
-    gr->Draw("apl");
-
-    // Select fit function
-    TF1* fit_fun = Functions::fun(fun_type, "fit");
-    fit_fun->SetNpx(1e3);
-    fit_fun->SetLineColor(kBlue);
-    fit_fun->SetLineStyle(kSolid);
-    fit_fun->SetLineWidth(4);
-
-    // Estimate initial parameters
-    auto expo_fun_0 = Functions::expo("init");
-
-    if (fun_type == Functions::Type::test)  
-    {
-      std::cout << "Estimate R0 first via an expo fit..." << std::endl; 
-      gr->Fit(expo_fun_0, "0N", "", fit_from_day, fit_from_day + 15);
-
-      auto R0_0 = expo_fun_0->GetParameter(1);
-      fit_fun->SetParLimits(1, 0.5 * R0_0, 1.5 * R0_0);
-      fit_fun->SetParameter(1, R0_0);
-    }
-    std::cout << std::endl;
-
-    // Set fit range
-    const float last_day = gr->GetN();
-    if (fit_from_day == 0.0) fit_from_day = 0;
-    if (fit_to_day == -1.0)  fit_to_day = last_day;
-    if (fit_from_day > last_day || fit_to_day < 0)
-    {
-      std::cout << "No data in fit range! Cannot fit!" << std::endl;
-      return;
-    }
-
-    // Fit
-    std::cout << "Fit with " << fun_type << " in [" << fit_from_day << ", " << fit_to_day << "]" << std::endl;
-    gr->Fit(fit_fun, "EMS", "", fit_from_day, fit_to_day);
-
-    // Draw predicted data
-    auto draw_fit_point = [&] (const float day, const bool print_text = true) 
-    {
-      float fit_val = fit_fun->Eval(day);
-
-      auto point = new TMarker(day, fit_val, 21);
-      point->SetMarkerSize(2);
-      point->SetMarkerColor(kOrange);
-      gr->GetXaxis()->SetLimits(0.0, 1.2*std::max(last_day, day));
-      gr->SetMaximum(1.2 * fit_val);
-      point->Draw("same");
-
-      if (print_text)
-      {
-	auto txt_str = (fit_val < 1e5) ? Form("%1.0f", fit_val) : Form("%1.2e", fit_val);
-	float txt_x_pos = day;
-	if (fit_val < 1e3) txt_x_pos -= 1;
-	else if (fit_val < 1e4) txt_x_pos -= 3;
-	else if (fit_val < 1e5) txt_x_pos -= 4;
-	else txt_x_pos -= 5; 
-
-	auto text = new TText(txt_x_pos, fit_val, txt_str);
-	text->SetTextSize(0.02);
-	text->Draw("same");
-      }
-    };
-
-    int pred_from_day = std::min(fit_to_day, last_day) + 1;  
-    int pred_to_day = pred_from_day + days_to_pred - 1;
-    for (int day = pred_from_day; day <= pred_to_day; day++)
-    {
-      bool print_text = days_to_pred < 5 ? true : ((day == pred_to_day) ? true : false); 
-      draw_fit_point(day, print_text); 
-    }
-
-    // Draw extra infos
-    if (draw_extra_info)
-    {
-      // Draw components
-      if (fun_type == Functions::Type::test)
-      {
-	expo_fun_0->SetParameter(1, fit_fun->GetParameter(1));
-	expo_fun_0->Draw("same"); // expo. from init. estimation
-
-	auto fermi_fun = Functions::fermi();
-	fermi_fun->FixParameter(0, 0.3 * gr->GetMaximum()); // scale
-	fermi_fun->FixParameter(1, fit_fun->GetParameter(2));
-	fermi_fun->FixParameter(2, fit_fun->GetParameter(3));
-	fermi_fun->Draw("same");
-      }
-
-      // Draw fit function derivative
-      auto gr_deriv = (TGraph*)fit_fun->DrawDerivative("goff");
-      for (int i = 0; i < gr_deriv->GetN(); i++) // scale
-      {
-	auto x = gr_deriv->GetX();
-	auto y = gr_deriv->GetY();
-	gr_deriv->SetPoint(i, x[i], 5 * y[i]);
-      }
-      gr_deriv->SetLineColor(kOrange);
-      gr_deriv->SetLineStyle(kDashed);
-      gr_deriv->SetLineWidth(4);
-      gr_deriv->Draw("same");
-
-      // Draw error bands
-      auto fun_low = new TF1(*fit_fun);
-      fun_low->SetLineStyle(kDotted);
-      fun_low->SetLineColor(kRed);
-
-      auto fun_up = new TF1(*fit_fun);
-      fun_up->SetLineStyle(kDotted);
-      fun_up->SetLineColor(kRed);
-
-      for (int i = 0; i < fit_fun->GetNpar(); i++)
-      {
-	fun_low->FixParameter(i, fit_fun->GetParameter(i)  + fit_fun->GetParError(i));
-	fun_up->FixParameter (i, fit_fun->GetParameter(i)  - fit_fun->GetParError(i));
-      }
-
-      fun_low->DrawF1(gr->GetXaxis()->GetXmin(), gr->GetXaxis()->GetXmax(), "same");
-      fun_up->DrawF1 (gr->GetXaxis()->GetXmin(), gr->GetXaxis()->GetXmax(), "same");
-    }
   }
 } // namespace Corona
