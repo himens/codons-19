@@ -9,6 +9,7 @@ from ROOT import Corona
 gROOT.SetBatch(True)
 
 # Corona data plot functions
+# Plot the summary of a data for all locations
 def plot_data_summary(name,
                       data_settings,
                       loc_settings,
@@ -19,28 +20,32 @@ def plot_data_summary(name,
     canv.SaveAs(pdf_name + "[")
 
     for data_set in data_settings:
-        (data_name, y_range) = data_set
+        (data_name, x_range, y_range) = data_set
  
         c = ana.make_canvas(name + "_" + data_name);
         c.SetLogy(log_scale);
 
         m_gr = TMultiGraph()
         m_gr.SetTitle(data_name + ";Days;" + data_name);
-        if (len(y_range) == 2): 
-            m_gr.SetMinimum(y_range[0])
-            m_gr.SetMaximum(y_range[1])
-        if log_scale: m_gr.SetMinimum(1);
 
         for loc_set in loc_settings:
             (sta, reg, color) = loc_set
 
             data = ana.get_data(data_name, sta, reg)
-
-            gr = data.make_graph(data_name)
+            gr = data.make_graph(data_name) 
             gr.SetTitle(reg if reg != "" else sta)
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
             m_gr.Add(gr, "PL")
+
+        if len(y_range): 
+            if y_range[0] != None: m_gr.SetMinimum(y_range[0]) 
+            if y_range[1] != None: m_gr.SetMaximum(y_range[1]) 
+        if len(x_range): 
+            x_min = x_range[0] if x_range[0] != None else m_gr.GetXaxis().GetXmin()
+            x_max = x_range[1] if x_range[1] != None else m_gr.GetXaxis().GetXmax()
+            m_gr.GetXaxis().SetLimits(x_min, x_max) 
+        if log_scale: m_gr.SetMinimum(1);
 
         m_gr.Draw("A")
         c.BuildLegend()
@@ -48,6 +53,7 @@ def plot_data_summary(name,
 
     canv.SaveAs(pdf_name + "]")
 
+# Plot the summary of all data for a location
 def plot_location_summary(name,
                           data_settings,
                           loc_settings,
@@ -71,7 +77,6 @@ def plot_location_summary(name,
             (data_name, color) = data_set
 
             data = ana.get_data(data_name, sta, reg)
-
             gr = data.make_graph(data_name)
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
@@ -96,7 +101,7 @@ loc_settings = [("ITA", "Bergamo", kRed),
                 ("ITA", "Padova",  kMagenta), 
                 ("ITA", "Verona",  kGray)]
 
-data_settings = [("totale_casi", [])]
+data_settings = [("totale_casi", [], [])]
 
 plot_data_summary("province_ita", data_settings, loc_settings)
 
@@ -130,37 +135,37 @@ for reg in ana.get_regions("ITA"): # Add custom data
 loc_settings = [("ITA", "Lombardia",      kRed), 
                 ("ITA", "Veneto",         kBlue),
                 ("ITA", "Emilia-Romagna", kGreen + 2),
-#               ("ITA", "Marche",         kOrange),
+                ("ITA", "Marche",         kOrange),
                 ("ITA", "Toscana",        kViolet), 
                 ("ITA", "Piemonte",       kMagenta), 
-#                ("ITA", "Umbria",         kGray),
+                ("ITA", "Umbria",         kGray),
                 ("ITA", "Campania",       kCyan + 3),
                 ("ITA", "Lazio",          kBlack),
                 ("ITA", "Liguria",        kYellow + 1)]
 
-data_settings = [("totale_casi",             []), 
-                 ("deceduti",                []),
-                 ("terapia_intensiva",       []), 
-                 ("totale_ospedalizzati",    []), 
-                 ("isolamento_domiciliare",  []),
-                 ("tamponi",                 []),
-                 ("ricoverati_con_sintomi",  []),
-                 ("positivi/tamponi (%)",    []),
-                 ("ricoverati/positivi (%)", [-50, 100]),
-                 ("terapie/positivi (%)",    [-20, 20])]
+data_settings = [("totale_casi",             [], []), 
+                 ("deceduti",                [], []),
+                 ("terapia_intensiva",       [], []), 
+                 ("totale_ospedalizzati",    [], []), 
+                 ("isolamento_domiciliare",  [], []),
+                 ("tamponi",                 [], []),
+                 ("ricoverati_con_sintomi",  [], []),
+                 ("positivi/tamponi (%)",    [], []),
+                 ("ricoverati/positivi (%)", [], [-50, 100]),
+                 ("terapie/positivi (%)",    [], [-20, 20])]
 
 plot_data_summary("regioni_ita", data_settings, loc_settings, False)
 
 # Sum over ITA regions
 loc_settings = [("ITA", "", kRed)]
-data_settings = [("deceduti",               []),
-                 ("terapia_intensiva",      []), 
-                 ("totale_ospedalizzati",   []),
-                 ("ricoverati_con_sintomi", []),
-                 ("variaz_positivi (x0.1)", []),
-                 ("variaz_deceduti",        []),
-                 ("variaz_terapie",         []),
-                 ("variaz_ricoverati",      [])]
+data_settings = [("deceduti",               [], []),
+                 ("terapia_intensiva",      [], []), 
+                 ("totale_ospedalizzati",   [], []),
+                 ("ricoverati_con_sintomi", [], []),
+                 ("variaz_positivi (x0.1)", [], []),
+                 ("variaz_deceduti",        [], []),
+                 ("variaz_terapie",         [], []),
+                 ("variaz_ricoverati",      [], [])]
 
 plot_data_summary("totale_ita", data_settings, loc_settings, False)
 
@@ -222,10 +227,13 @@ loc_settings = [("Italy",          "", kRed),
 #                ("Brazil",         "", kRed - 2)]
 #                ("India",          "", kYellow - 2)]
 
-data_settings = [("total_cases",                    []),
-                 ("total_deaths",                   []),
-                 ("variaz_cases",                   []),
-                 ("variaz_deaths",                  []),
-                 ("variaz_deaths/variaz_cases (%)", [0., 5])]
+data_settings = [("total_cases",                    [], []),
+                 ("total_deaths",                   [], []),
+                 ("variaz_cases",                   [], []),
+                 ("variaz_deaths",                  [], []),
+                 ("variaz_deaths/variaz_cases (%)", [], [0., 5]),
+                 ("new_vaccinations",               [330, None], []),
+                 ("total_vaccinations",             [330, None], []),
+                 ("people_fully_vaccinated",        [330, None], [])]
 
 plot_data_summary("stati", data_settings, loc_settings, False)
