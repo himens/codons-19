@@ -213,20 +213,6 @@ for sta in ana.get_states(): # Add custom data
         ana.add_data(d_deaths, "variaz_deaths", sta, reg)
         ana.add_data(100 * (d_deaths / d_cases), "variaz_deaths/variaz_cases (%)", sta, reg)
 
-loc_settings = [("Italy",          "", kRed),
-#                ("United States",  "", kBlue),
-                ("France",         "", kGreen + 2),
-                ("Spain",          "", kOrange), 
-#                ("China",          "", kViolet),
-                ("United Kingdom", "", kMagenta),
-                ("Germany",        "", kGray)]
-#                ("South Korea",    "", kBlack),
-#                ("Netherlands",    "", kCyan + 3),
-#                ("Russia",         "", kYellow + 1),
-#                ("Japan",          "", kBlue - 2),
-#                ("Brazil",         "", kRed - 2)]
-#                ("India",          "", kYellow - 2)]
-
 data_settings = [("total_cases",                    [], []),
                  ("total_deaths",                   [], []),
                  ("variaz_cases",                   [], []),
@@ -236,4 +222,23 @@ data_settings = [("total_cases",                    [], []),
                  ("total_vaccinations",             [330, None], []),
                  ("people_fully_vaccinated",        [330, None], [])]
 
-plot_data_summary("stati", data_settings, loc_settings, False)
+# Europe
+loc_settings = [("Italy",          "", kRed),
+                ("France",         "", kGreen + 2),
+                ("Spain",          "", kOrange), 
+                ("United Kingdom", "", kMagenta),
+                ("Germany",        "", kGray),
+                ("Netherlands",    "", kCyan + 3)]
+
+plot_data_summary("europe", data_settings, loc_settings, False)
+
+# Extra Europe
+loc_settings = [("United States",  "", kBlue),
+                ("China",          "", kViolet),
+                ("South Korea",    "", kBlack),
+                ("Russia",         "", kOrange),
+                ("Japan",          "", kGreen + 2),
+                ("Brazil",         "", kRed),
+                ("India",          "", kMagenta)]
+
+plot_data_summary("extra_europe", data_settings, loc_settings, False)
