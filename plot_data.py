@@ -20,32 +20,33 @@ def plot_data_summary(name,
     canv.SaveAs(pdf_name + "[")
 
     for data_set in data_settings:
-        (data_name, x_range, y_range) = data_set
+        (data_name, x_range, y_range, x_title) = data_set
  
         c = ana.make_canvas(name + "_" + data_name);
         c.SetLogy(log_scale);
 
         m_gr = TMultiGraph()
-        m_gr.SetTitle(data_name + ";Days;" + data_name);
+        m_gr.SetTitle(data_name + ";" + x_title + ";Counts");
 
         for loc_set in loc_settings:
             (sta, reg, color) = loc_set
 
             data = ana.get_data(data_name, sta, reg)
             gr = data.make_graph(data_name) 
-            gr.SetTitle(reg if reg != "" else sta)
+            gr.SetTitle(reg if reg != "" else sta + ";" + x_title + ";Counts")
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
             m_gr.Add(gr, "PL")
 
-        if len(y_range): 
-            if y_range[0] != None: m_gr.SetMinimum(y_range[0]) 
-            if y_range[1] != None: m_gr.SetMaximum(y_range[1]) 
-        if len(x_range): 
-            x_min = x_range[0] if x_range[0] != None else m_gr.GetXaxis().GetXmin()
-            x_max = x_range[1] if x_range[1] != None else m_gr.GetXaxis().GetXmax()
-            m_gr.GetXaxis().SetLimits(x_min, x_max) 
-        if log_scale: m_gr.SetMinimum(1);
+        h = m_gr.GetHistogram();
+        x_min = x_range[0] if (len(x_range) and x_range[0] != None) else h.GetXaxis().GetXmin() 
+        x_max = x_range[1] if (len(x_range) == 2 and x_range[1] != None) else h.GetXaxis().GetXmax() 
+        y_min = y_range[0] if (len(y_range) and y_range[0] != None) else h.GetYaxis().GetXmin()
+        y_max = y_range[1] if (len(y_range) == 2 and y_range[1] != None) else h.GetYaxis().GetXmax()
+
+        h.GetXaxis().SetLimits(0.95*x_min, 1.05*x_max)
+        h.GetYaxis().SetRangeUser(0.95*y_min, 1.05*y_max)
+        if log_scale: h.SetMinimum(1);
 
         m_gr.Draw("A")
         c.BuildLegend()
@@ -65,23 +66,34 @@ def plot_location_summary(name,
 
     for loc_set in loc_settings:
         (sta, reg) = loc_set
+        (_, _, _, _, x_title) = data_settings[0] # assume all data have same units
 
         c = ana.make_canvas(name + "_" + reg)
         c.SetLogy(log_scale);
 
         m_gr = TMultiGraph()
-        m_gr.SetTitle(reg + ";Days;Counts");
-        if log_scale: m_gr.SetMinimum(1);
+        m_gr.SetTitle(reg + ";" + x_title + ";Counts");
 
         for data_set in data_settings:
-            (data_name, color) = data_set
+            (data_name, color, x_range, y_range, x_title) = data_set
 
             data = ana.get_data(data_name, sta, reg)
             gr = data.make_graph(data_name)
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
-            gr.SetTitle(data_name)
+            gr.SetTitle(data_name + ";" + x_title + ";Counts")
+        
             m_gr.Add(gr, "PL")
+
+        h = m_gr.GetHistogram();
+        x_min = x_range[0] if (len(x_range) and x_range[0] != None) else h.GetXaxis().GetXmin() 
+        x_max = x_range[1] if (len(x_range) == 2 and x_range[1] != None) else h.GetXaxis().GetXmax() 
+        y_min = y_range[0] if (len(y_range) and y_range[0] != None) else h.GetYaxis().GetXmin()
+        y_max = y_range[1] if (len(y_range) == 2 and y_range[1] != None) else h.GetYaxis().GetXmax()
+
+        h.GetXaxis().SetLimits(0.95*x_min, 1.05*x_max)
+        h.GetYaxis().SetRangeUser(0.95*y_min, 1.05*y_max)
+        if log_scale: h.SetMinimum(1);
 
         m_gr.Draw("A")
         c.BuildLegend()
@@ -101,7 +113,7 @@ loc_settings = [("ITA", "Bergamo", kRed),
                 ("ITA", "Padova",  kMagenta), 
                 ("ITA", "Verona",  kGray)]
 
-data_settings = [("totale_casi", [], [])]
+data_settings = [("totale_casi", [], [], "Days")]
 
 plot_data_summary("province_ita", data_settings, loc_settings)
 
@@ -130,7 +142,6 @@ for reg in ana.get_regions("ITA"): # Add custom data
     ana.add_data(d_ricoverati, "variaz_ricoverati", "ITA", reg)
     ana.add_data(d_terapie, "variaz_terapie", "ITA", reg)
     ana.add_data(d_deceduti, "variaz_deceduti", "ITA", reg)
-    ana.add_data(100 * ((d_ricoverati + d_terapie) / d_positivi), "variaz_malati/positivi (%)", "ITA", reg);
 
 loc_settings = [("ITA", "Lombardia",      kRed), 
                 ("ITA", "Veneto",         kBlue),
@@ -143,29 +154,29 @@ loc_settings = [("ITA", "Lombardia",      kRed),
                 ("ITA", "Lazio",          kBlack),
                 ("ITA", "Liguria",        kYellow + 1)]
 
-data_settings = [("totale_casi",             [], []), 
-                 ("deceduti",                [], []),
-                 ("terapia_intensiva",       [], []), 
-                 ("totale_ospedalizzati",    [], []), 
-                 ("isolamento_domiciliare",  [], []),
-                 ("tamponi",                 [], []),
-                 ("ricoverati_con_sintomi",  [], []),
-                 ("positivi/tamponi (%)",    [], []),
-                 ("ricoverati/positivi (%)", [], [-50, 100]),
-                 ("terapie/positivi (%)",    [], [-20, 20])]
+data_settings = [("totale_casi",             [], [],  "Days"), 
+                 ("deceduti",                [], [],  "Days"),
+                 ("terapia_intensiva",       [], [],  "Days"), 
+                 ("totale_ospedalizzati",    [], [],  "Days"), 
+                 ("isolamento_domiciliare",  [], [],  "Days"),
+                 ("tamponi",                 [], [],  "Days"),
+                 ("ricoverati_con_sintomi",  [], [],  "Days"),
+                 ("positivi/tamponi (%)",    [20, None], [0, 30],   "Avg of %s days" %days),
+                 ("ricoverati/positivi (%)", [20, None], [-10, 30], "Avg of %s days" %days),
+                 ("terapie/positivi (%)",    [20, None], [-5, 10], "Avg of %s days" %days)]
 
 plot_data_summary("regioni_ita", data_settings, loc_settings, False)
 
 # Sum over ITA regions
 loc_settings = [("ITA", "", kRed)]
-data_settings = [("deceduti",               [], []),
-                 ("terapia_intensiva",      [], []), 
-                 ("totale_ospedalizzati",   [], []),
-                 ("ricoverati_con_sintomi", [], []),
-                 ("variaz_positivi (x0.1)", [], []),
-                 ("variaz_deceduti",        [], []),
-                 ("variaz_terapie",         [], []),
-                 ("variaz_ricoverati",      [], [])]
+data_settings = [("deceduti",               [], [], "Days"),
+                 ("terapia_intensiva",      [], [], "Days"), 
+                 ("totale_ospedalizzati",   [], [], "Days"),
+                 ("ricoverati_con_sintomi", [], [], "Days"),
+                 ("variaz_positivi (x0.1)", [], [], "Avg of %s days" %days),
+                 ("variaz_deceduti",        [], [], "Avg of %s days" %days),
+                 ("variaz_terapie",         [], [], "Avg of %s days" %days),
+                 ("variaz_ricoverati",      [], [], "Avg of %s days" %days)]
 
 plot_data_summary("totale_ita", data_settings, loc_settings, False)
 
@@ -184,17 +195,17 @@ loc_settings = [("ITA", "Lombardia"),
                 ("ITA", "Sicilia"),        
                 ("ITA", "Puglia")]        
 
-data_settings = [("deceduti",               kBlack),
-                 ("terapia_intensiva",      kGreen + 2), 
-                 ("totale_ospedalizzati",   kViolet),
-                 ("ricoverati_con_sintomi", kRed)]
+data_settings = [("deceduti",               kBlack,     [], [], "Days"),
+                 ("terapia_intensiva",      kGreen + 2, [], [], "Days"), 
+                 ("totale_ospedalizzati",   kViolet,    [], [], "Days"),
+                 ("ricoverati_con_sintomi", kRed,       [], [], "Days")]
 
 plot_location_summary("summary_regioni_ita", data_settings, loc_settings, False)
 
-data_settings = [("variaz_positivi (x0.1)",  kRed),
-                 ("variaz_ricoverati",       kOrange + 1),
-                 ("variaz_deceduti",         kBlack),
-                 ("variaz_terapie",          kBlue)]
+data_settings = [("variaz_positivi (x0.1)",  kRed,        [], [], "Avg of %s days" %days),
+                 ("variaz_ricoverati",       kOrange + 1, [], [], "Avg of %s days" %days),
+                 ("variaz_deceduti",         kBlack,      [], [], "Avg of %s days" %days),
+                 ("variaz_terapie",          kBlue,       [], [], "Avg of %s days" %days)]
 
 plot_location_summary("variaz_regioni_ita", data_settings, loc_settings, False)
 
@@ -211,16 +222,14 @@ for sta in ana.get_states(): # Add custom data
 
         ana.add_data(d_cases, "variaz_cases", sta, reg)
         ana.add_data(d_deaths, "variaz_deaths", sta, reg)
-        ana.add_data(100 * (d_deaths / d_cases), "variaz_deaths/variaz_cases (%)", sta, reg)
 
-data_settings = [("total_cases",                    [], []),
-                 ("total_deaths",                   [], []),
-                 ("variaz_cases",                   [], []),
-                 ("variaz_deaths",                  [], []),
-                 ("variaz_deaths/variaz_cases (%)", [], [0., 5]),
-                 ("new_vaccinations",               [330, None], []),
-                 ("total_vaccinations",             [330, None], []),
-                 ("people_fully_vaccinated",        [330, None], [])]
+data_settings = [("total_cases",              [], [],  "Days"),
+                 ("total_deaths",             [], [],  "Days"),
+                 ("new_vaccinations",         [330, None], [],  "Days"),
+                 ("total_vaccinations",       [330, None], [],  "Days"),
+                 ("people_fully_vaccinated",  [330, None], [],  "Days"),
+                 ("variaz_cases",             [], [],  "Avg of %s days" %days),
+                 ("variaz_deaths",            [], [],  "Avg of %s days" %days)]
 
 # Europe
 loc_settings = [("Italy",          "", kRed),
