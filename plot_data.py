@@ -82,7 +82,6 @@ def plot_location_summary(name,
             gr.SetLineColor(color)
             gr.SetMarkerColor(color)        
             gr.SetTitle(data_name + ";" + x_title + ";Counts")
-        
             m_gr.Add(gr, "PL")
 
         h = m_gr.GetHistogram();
