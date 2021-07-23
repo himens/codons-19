@@ -160,9 +160,9 @@ data_settings = [("totale_casi",             [], [],  "Days"),
                  ("isolamento_domiciliare",  [], [],  "Days"),
                  ("tamponi",                 [], [],  "Days"),
                  ("ricoverati_con_sintomi",  [], [],  "Days"),
-                 ("positivi/tamponi (%)",    [20, None], [0, 30],   "Avg of %s days" %days),
-                 ("ricoverati/positivi (%)", [20, None], [-10, 30], "Avg of %s days" %days),
-                 ("terapie/positivi (%)",    [20, None], [-5, 10], "Avg of %s days" %days)]
+                 ("positivi/tamponi (%)",    [25, None], [0, 30],   "Avg of %s days" %days),
+                 ("ricoverati/positivi (%)", [25, None], [-10, 15], "Avg of %s days" %days),
+                 ("terapie/positivi (%)",    [25, None], [-3, 3], "Avg of %s days" %days)]
 
 plot_data_summary("regioni_ita", data_settings, loc_settings, False)
 
